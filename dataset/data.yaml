@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 5
+names: ['Shampoo', 'Shelf', 'milk', 'snacks', 'soft_drink']
+
+roboflow:
+  workspace: vansh-batra-evq2h
+  project: shelfes-module
+  version: dataset
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/vansh-batra-evq2h/shelfes-module/dataset/dataset
