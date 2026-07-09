@@ -4,7 +4,7 @@ from app.services.shelf_services import ShelfService
 from app.utils.video_utils import VideoReader
 from app.utils.video_utils import VideoWriter
 
-VIDEO_PATH = "video.mp4"
+VIDEO_PATH = "video2.mp4"
 
 reader = VideoReader(VIDEO_PATH)
 

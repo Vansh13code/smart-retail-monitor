@@ -3,7 +3,7 @@ from ultralytics import YOLO
 class ShelfDetector:
 
     def __init__(self):
-        self.model = YOLO("runs/detect/shelf_detector2/weights/best.pt")
+        self.model = YOLO("runs/detect/shelf_detector3/weights/best.pt")
 
     def detect(self, frame):
 
