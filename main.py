@@ -1,14 +1,21 @@
 import cv2
 
 from app.services.shelf_services import ShelfService
+from app.services.product_services import ProductService
+
 from app.utils.video_utils import VideoReader
 from app.utils.video_utils import VideoWriter
+
 
 VIDEO_PATH = "video2.mp4"
 
 reader = VideoReader(VIDEO_PATH)
 
-service = ShelfService()
+# Engineer 1
+shelf_service = ShelfService()
+
+# Engineer 2
+product_service = ProductService()
 
 ret, frame = reader.read()
 
@@ -25,21 +32,29 @@ writer = VideoWriter(
 
 while ret:
 
-    annotated_frame, shelves = service.process_frame(frame)
+    # Engineer 1
+    annotated_frame, detections = shelf_service.process_frame(frame)
 
-    print(shelves)
+    # Engineer 2
+    product_data = product_service.process(detections)
+
+    print("\n================ PRODUCT REPORT ================")
+    print(f"Total Products : {product_data['total_products']}")
+    print(f"Class Count    : {product_data['class_count']}")
+    print(f"Confidence     : {product_data['confidence_scores']}")
+    print(f"Bounding Boxes : {product_data['bounding_boxes']}")
+    print("================================================\n")
 
     writer.write(annotated_frame)
 
-    cv2.imshow("Shelf Detection", annotated_frame)
+    cv2.imshow("Smart Retail Monitor", annotated_frame)
 
-    if cv2.waitKey(1) == ord("q"):
+    if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
     ret, frame = reader.read()
 
 reader.release()
-
 writer.release()
 
 cv2.destroyAllWindows()
