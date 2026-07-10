@@ -10,7 +10,7 @@ from app.utils.video_utils import VideoReader
 from app.utils.video_utils import VideoWriter
 
 
-VIDEO_PATH = r"D:\retail_smart_monitor\smart-retail-monitor\tests\price_test1.mp4"
+VIDEO_PATH = "tests/price_test3.MOV"
 
 reader = VideoReader(VIDEO_PATH)
 
@@ -107,6 +107,27 @@ while ret:
     print("\n============= PRICE TAG REPORT =================")
     print(f"Detected Price Tags : {len(price_tag_data['detections'])}")
     print("================================================\n")
+
+    print("\n============= OCR RESULTS =============")
+    for index, result in enumerate(price_tag_data["ocr_results"]):
+        print(f"\nTag {index+1}")
+        print(f"Text       : {result['text']}")
+        print(f"Confidence : {result['confidence']:.2f}")
+    print("=======================================\n")
+
+
+    print("\n============= CLEANED OCR =============")
+    for i, item in enumerate(price_tag_data["cleaned_results"]):
+        print(f"Tag {i+1}")
+        print(item["text"])
+    print("=======================================\n")
+
+
+    print("\n============= PARSED RESULTS =============")
+    for item in price_tag_data["parsed_results"]:
+        print(item)
+    print("==========================================")
+
 
     # ======================================================
     # Display
