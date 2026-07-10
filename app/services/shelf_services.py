@@ -69,5 +69,7 @@ class ShelfService:
                 )
 
                 object_id += 1
+        print(detections)
+    
 
         return frame, detections
