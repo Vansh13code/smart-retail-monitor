@@ -11,10 +11,6 @@ from app.schemas.detection import Detection
 from app.schemas.crop import Crop
 
 
-# ==========================================================
-# Price Tag Detector
-# ==========================================================
-
 class PriceTagDetector:
     """
     Detects price tags using a pretrained YOLO model.
@@ -42,7 +38,6 @@ class PriceTagDetector:
         )
 
         detections = []
-
         boxes = results[0].boxes
 
         for idx, box in enumerate(boxes):
@@ -62,13 +57,9 @@ class PriceTagDetector:
                     class_name=self.model.names[int(box.cls[0])]
                 )
             )
-
         return detections
 
 
-# ==========================================================
-# Cropper
-# ==========================================================
 
 class Cropper:
 
@@ -77,7 +68,6 @@ class Cropper:
         image,
         detections: List[Detection]
     ) -> List[Crop]:
-
         crops = []
 
         for detection in detections:
@@ -94,9 +84,9 @@ class Cropper:
                     confidence=detection.confidence
                 )
             )
-
         return crops
     
+
 
 class ImagePreprocessor:
     """
@@ -105,43 +95,42 @@ class ImagePreprocessor:
 
     def preprocess(self, crop):
 
-        # Convert to grayscale
+        crop.image = cv2.resize(
+            crop.image,
+            None,
+            fx=2,
+            fy=2,
+            interpolation=cv2.INTER_CUBIC)
+
         gray = cv2.cvtColor(
             crop.image,
             cv2.COLOR_BGR2GRAY
         )
 
-        # Improve local contrast
         clahe = cv2.createCLAHE(
-            clipLimit=2.0,
+            clipLimit=4.0,
             tileGridSize=(8, 8)
         )
-
         enhanced = clahe.apply(gray)
 
-        # Remove small noise
         denoised = cv2.GaussianBlur(
             enhanced,
-            (3, 3),
+            (5, 5),
             0
         )
 
-        # Adaptive threshold
         binary = cv2.adaptiveThreshold(
             denoised,
             255,
             cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
             cv2.THRESH_BINARY,
-            11,
-            2
+            21,
+            5
         )
 
         return enhanced
     
 
-# ==========================================================
-# OCR Service
-# ==========================================================
 
 class OCRService:
     """
@@ -164,17 +153,28 @@ class OCRService:
 
         results = self.reader.readtext(
             image,
+
             detail=1,
             paragraph=False,
-            text_threshold=0.4,
-            low_text=0.2
+
+            text_threshold=0.6,
+            low_text=0.3,
+            link_threshold=0.3,
+
+            contrast_ths=0.05,
+            adjust_contrast=0.7,
+
+            width_ths=0.7,
+            ycenter_ths=0.5,
+            height_ths=0.5,
+
+            allowlist="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789₹.-/: "
         )
-        
+
         extracted_text = []
         confidences = []
 
         for _, text, confidence in results:
-
             extracted_text.append(text)
             confidences.append(confidence)
 
@@ -191,9 +191,6 @@ class OCRService:
         }
     
 
-# ==========================================================
-# Text Cleaner
-# ==========================================================
 
 class TextCleaner:
     """
@@ -205,18 +202,9 @@ class TextCleaner:
         if not text:
             return ""
 
-        # ----------------------------------------
-        # Convert to uppercase
-        # ----------------------------------------
-
         text = text.upper()
 
-        # ----------------------------------------
-        # Replace common OCR mistakes
-        # ----------------------------------------
-
         replacements = {
-
             "RS.": "RS ",
             "RS": "RS ",
             "MRP:": "MRP ",
@@ -235,17 +223,10 @@ class TextCleaner:
             "_": " ",
             "`": " ",
             "~": " ",
-
         }
 
         for old, new in replacements.items():
-
             text = text.replace(old, new)
-
-        # ----------------------------------------
-        # Remove unwanted symbols
-        # Keep letters, digits, ₹, dots and spaces
-        # ----------------------------------------
 
         text = re.sub(
             r"[^A-Z0-9₹.\s]",
@@ -253,23 +234,15 @@ class TextCleaner:
             text
         )
 
-        # ----------------------------------------
-        # Remove multiple spaces
-        # ----------------------------------------
-
         text = re.sub(
             r"\s+",
             " ",
             text
         )
-
         return text.strip()
 
 
 
-# ==========================================================
-# Text Parser
-# ==========================================================
 
 class TextParser:
     """
@@ -278,10 +251,6 @@ class TextParser:
 
     def parse(self, ocr_result):
         text = ocr_result["text"]
-
-        # ----------------------------------------
-        # Find price
-        # ----------------------------------------
 
         price_pattern = r"\d+(?:\.\d{1,2})?"
 
@@ -293,10 +262,6 @@ class TextParser:
         price = None
         if prices:
             price = float(prices[0])
-
-        # ----------------------------------------
-        # Clean product text
-        # ----------------------------------------
 
         cleaned_text = re.sub(
             price_pattern,
@@ -319,9 +284,31 @@ class TextParser:
 
 
 
-# ==========================================================
-# Price Tag Service
-# ==========================================================
+class BusinessLogic:
+    """
+    Applies business rules to parsed OCR data.
+    """
+
+    def process(self, parsed_data):
+
+        product_name = parsed_data.get("product_name", "").strip()
+        price = parsed_data.get("price")
+
+        result = {
+            "product_name": product_name,
+            "price": price,
+            "status": "Valid"
+        }
+
+        if not product_name:
+            result["status"] = "Product Name Missing"
+
+        elif price is None:
+            result["status"] = "Price Missing"
+
+        return result
+
+
 
 class PriceTagService:
 
@@ -339,38 +326,23 @@ class PriceTagService:
 
         self.parser = TextParser()
 
+        self.business_logic = BusinessLogic()
+
 
     def process(self, frame):
 
-        # --------------------------------------------
-        # Step 1 : Detect Price Tags
-        # --------------------------------------------
-
         detections = self.detector.detect(frame)
-
-        # --------------------------------------------
-        # Step 2 : Crop Tags
-        # --------------------------------------------
 
         crops = self.cropper.crop(
             frame,
-            detections
-        )
+            detections)
 
-        # --------------------------------------------
-        # Step 3 : Preprocess
-        # --------------------------------------------
 
         processed_crops = []
         for crop in crops:
             processed = self.preprocessor.preprocess(crop)
             processed_crops.append(processed)
 
-
-
-        # --------------------------------------------
-        # Step 4 : OCR
-        # --------------------------------------------
 
         ocr_results = []
         for processed in processed_crops:
@@ -389,17 +361,18 @@ class PriceTagService:
             })
 
 
-
         parsed_results = []
         for result in ocr_results:
             parsed = self.parser.parse(result)
             parsed_results.append(parsed)
 
 
+        business_results = []
+        for parsed in parsed_results:
+            business_results.append(
+                self.business_logic.process(parsed)
+        )
 
-        # --------------------------------------------
-        # Return
-        # --------------------------------------------
 
         return {
             "detections": detections,
@@ -414,6 +387,8 @@ class PriceTagService:
 
             "parsed_results": parsed_results,
 
-            "total_price_tags": len(detections)
+            "total_price_tags": len(detections),
+
+            "business_results": business_results
             
         }

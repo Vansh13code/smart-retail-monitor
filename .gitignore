@@ -36,4 +36,4 @@ htmlcov/
 *.swo
 
 tests/*.mp4
-tests/*.MOV
+#tests/*.MOV
