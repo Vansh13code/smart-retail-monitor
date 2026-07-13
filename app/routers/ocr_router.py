@@ -5,6 +5,11 @@ import tempfile
 import os
 
 from app.services.price_tag_detection_service import PriceTagService
+import time
+import logging
+import base64
+import cv2
+import numpy as np
 
 router = APIRouter(
     prefix="/ocr",
@@ -30,9 +35,15 @@ async def ocr(file: UploadFile = File(...)):
         if frame is None:
             raise HTTPException(status_code=400, detail="Invalid image.")
 
+        start = time.time()
+        result = service.process(frame)
+        elapsed = time.time() - start
+
         return {
             "file_type": "image",
-            "result": service.process(frame)
+            "result": result,
+            "execution_time": elapsed,
+            "warnings": []
         }
 
     # ---------------- VIDEO ----------------

@@ -6,6 +6,10 @@ import os
 
 from app.services.shelf_services import ShelfService
 from app.services.product_services import ProductService
+import time
+import base64
+import cv2
+import numpy as np
 
 router = APIRouter(
     prefix="/detect-products",
@@ -35,13 +39,19 @@ async def detect_products(file: UploadFile = File(...)):
                 detail="Invalid image."
             )
 
-        _, detections = shelf_service.process_frame(image)
-
+        annotated, detections = shelf_service.process_frame(image)
+        start = time.time()
         result = product_service.process(detections)
+        elapsed = time.time() - start
+
+        _, buffer = cv2.imencode('.png', annotated)
+        annotated_b64 = base64.b64encode(buffer).decode('utf-8')
 
         return {
             "file_type": "image",
-            "result": result
+            "result": result,
+            "annotated_image": f"data:image/png;base64,{annotated_b64}",
+            "execution_time": elapsed
         }
 
     # ================= VIDEO =================

@@ -6,6 +6,9 @@ import os
 
 from app.services.shelf_services import ShelfService
 from app.services.product_services import ProductService
+import base64
+import cv2
+import numpy as np
 
 router = APIRouter(
     prefix="/detect-shelf",
@@ -39,11 +42,16 @@ async def detect_shelf(file: UploadFile = File(...)):
 
         product_analysis = product_service.process(detections)
 
+        # encode annotated image to base64
+        _, buffer = cv2.imencode('.png', annotated)
+        annotated_b64 = base64.b64encode(buffer).decode('utf-8')
+
         return {
             "success": True,
             "file_type": "image",
             "total_detections": len(detections),
             "detections": detections,
+            "annotated_image": f"data:image/png;base64,{annotated_b64}",
             "product_analysis": product_analysis
         }
 
