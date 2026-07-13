@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, HTTPException
 import cv2
 import numpy as np
 import uuid
@@ -14,23 +14,79 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.post("/")
-async def upload_image(file: UploadFile = File(...)):
-    contents = await file.read()
+async def upload_file(file: UploadFile = File(...)):
 
-    filename = f"{uuid.uuid4().hex}.jpg"
+    # Generate unique filename while keeping original extension
+    extension = os.path.splitext(file.filename)[1]
+    filename = f"{uuid.uuid4().hex}{extension}"
     path = os.path.join(UPLOAD_DIR, filename)
+
+    contents = await file.read()
 
     with open(path, "wb") as f:
         f.write(contents)
 
-    image = cv2.imdecode(
-        np.frombuffer(contents, np.uint8),
-        cv2.IMREAD_COLOR
-    )
+    # ================= IMAGE =================
+    if file.content_type.startswith("image/"):
 
-    return {
-        "success": True,
-        "filename": filename,
-        "path": path,
-        "shape": image.shape
-    }
+        image = cv2.imdecode(
+            np.frombuffer(contents, np.uint8),
+            cv2.IMREAD_COLOR
+        )
+
+        if image is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid image file."
+            )
+
+        return {
+            "success": True,
+            "file_type": "image",
+            "filename": filename,
+            "path": path,
+            "shape": {
+                "height": image.shape[0],
+                "width": image.shape[1],
+                "channels": image.shape[2]
+            }
+        }
+
+    # ================= VIDEO =================
+    elif file.content_type.startswith("video/"):
+
+        cap = cv2.VideoCapture(path)
+
+        if not cap.isOpened():
+            raise HTTPException(
+                status_code=400,
+                detail="Unable to open video."
+            )
+
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        duration = total_frames / fps if fps > 0 else 0
+
+        cap.release()
+
+        return {
+            "success": True,
+            "file_type": "video",
+            "filename": filename,
+            "path": path,
+            "width": width,
+            "height": height,
+            "fps": round(fps, 2),
+            "total_frames": total_frames,
+            "duration_seconds": round(duration, 2)
+        }
+
+    # ================= INVALID FILE =================
+    else:
+        os.remove(path)
+        raise HTTPException(
+            status_code=400,
+            detail="Only image and video files are supported."
+        )

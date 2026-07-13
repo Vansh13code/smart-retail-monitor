@@ -11,6 +11,7 @@ from app.routers import (
     customer_router,
     pipeline_router,
     report_router,
+    videos_router
 )
 
 app = FastAPI(
@@ -28,3 +29,4 @@ app.include_router(ocr_router.router)
 app.include_router(customer_router.router)
 app.include_router(pipeline_router.router)
 app.include_router(report_router.router)
+app.include_router(videos_router.router)
