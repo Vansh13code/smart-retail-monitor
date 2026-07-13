@@ -128,7 +128,7 @@ class ImagePreprocessor:
             5
         )
 
-        return enhanced
+        return binary
     
 
 
@@ -315,80 +315,79 @@ class PriceTagService:
     def __init__(self):
 
         self.detector = PriceTagDetector()
-
         self.cropper = Cropper()
-
         self.preprocessor = ImagePreprocessor()
-
         self.ocr = OCRService()
-
         self.cleaner = TextCleaner()
-
         self.parser = TextParser()
-
         self.business_logic = BusinessLogic()
-
 
     def process(self, frame):
 
         detections = self.detector.detect(frame)
 
-        crops = self.cropper.crop(
-            frame,
-            detections)
+        if len(detections) == 0:
+            return {
+                "total_price_tags": 0,
+                "detections": [],
+                "ocr_results": [],
+                "cleaned_results": [],
+                "parsed_results": [],
+                "business_results": []
+            }
 
-
-        processed_crops = []
-        for crop in crops:
-            processed = self.preprocessor.preprocess(crop)
-            processed_crops.append(processed)
-
+        crops = self.cropper.crop(frame, detections)
 
         ocr_results = []
-        for processed in processed_crops:
-            result = self.ocr.read(processed)
-            ocr_results.append(result)
-
-
         cleaned_results = []
-        for result in ocr_results:
-            cleaned_text = self.cleaner.clean(
-                result["text"]
-            )
-            cleaned_results.append({
-                "text": cleaned_text,
-                "confidence": result["confidence"]
+        parsed_results = []
+        business_results = []
+        detection_response = []
+
+        for detection, crop in zip(detections, crops):
+
+            processed = self.preprocessor.preprocess(crop)
+
+            ocr = self.ocr.read(processed)
+
+            cleaned = {
+                "text": self.cleaner.clean(ocr["text"]),
+                "confidence": float(ocr["confidence"])
+            }
+
+            parsed = self.parser.parse(cleaned)
+
+            business = self.business_logic.process(parsed)
+
+            ocr_results.append(ocr)
+            cleaned_results.append(cleaned)
+            parsed_results.append(parsed)
+            business_results.append(business)
+
+            detection_response.append({
+                "id": int(detection.id),
+                "bbox": [
+                    int(detection.bbox[0]),
+                    int(detection.bbox[1]),
+                    int(detection.bbox[2]),
+                    int(detection.bbox[3])
+                ],
+                "confidence": float(detection.confidence),
+                "class_name": str(detection.class_name)
             })
 
-
-        parsed_results = []
-        for result in ocr_results:
-            parsed = self.parser.parse(result)
-            parsed_results.append(parsed)
-
-
-        business_results = []
-        for parsed in parsed_results:
-            business_results.append(
-                self.business_logic.process(parsed)
-        )
-
-
         return {
-            "detections": detections,
-            
-            "crops": crops,
-            
-            "processed_crops": processed_crops,
-            
+
+            "total_price_tags": len(detections),
+
+            "detections": detection_response,
+
             "ocr_results": ocr_results,
-            
+
             "cleaned_results": cleaned_results,
 
             "parsed_results": parsed_results,
 
-            "total_price_tags": len(detections),
-
             "business_results": business_results
-            
+
         }

@@ -1,3 +1,4 @@
+from pathlib import Path
 from ultralytics import YOLO
 
 
@@ -5,23 +6,29 @@ class PersonDetector:
 
     def __init__(self):
 
-        # Load YOLO model
-        self.model = YOLO(r"C:\Users\DELL\OneDrive\Desktop\New folder (3)\smart-retail-monitor\models\interaction\yolov8n.pt")
+        model_path = Path(__file__).parent / "yolov8n.pt"
+
+        self.model = YOLO(str(model_path))
+
+    def detect(self, frame):
+
+        results = self.model.predict(
+            source=frame,
+            classes=[0],
+            conf=0.4,
+            verbose=False
+        )
+
+        return results
 
     def track(self, frame):
 
         results = self.model.track(
-
             source=frame,
-
-            classes=[0],          # Detect only 'person' class
-
-            persist=True,         # Keep tracking IDs between frames
-
-            conf=0.4,             # Confidence threshold
-
+            classes=[0],
+            persist=True,
+            conf=0.4,
             verbose=False
-
         )
 
         return results
