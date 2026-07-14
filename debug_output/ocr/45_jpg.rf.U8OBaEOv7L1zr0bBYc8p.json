@@ -1,0 +1,52 @@
+[
+  {
+    "text": "REDKEN 5 T H A V E N U E N Y C REDKEN REDKEN REDKEN REDKEN REDKEN IDKEN 408 8 ONE RELKEN REDKEN REDKEN REDKEN REDKEN REDKE REDKEN REDKEN REDKEN",
+    "confidence": 0.8744907161849419,
+    "blocks": [
+      {
+        "text": "REDKEN 5 T H A V E N U E N Y C",
+        "confidence": 0.6800846967426795
+      },
+      {
+        "text": "REDKEN REDKEN REDKEN",
+        "confidence": 0.8325845826834151
+      },
+      {
+        "text": "REDKEN",
+        "confidence": 0.9803399456570605
+      },
+      {
+        "text": "REDKEN",
+        "confidence": 0.9997196693138202
+      },
+      {
+        "text": "IDKEN",
+        "confidence": 0.8721196581510874
+      },
+      {
+        "text": "408 8 ONE RELKEN",
+        "confidence": 0.6967852530632976
+      },
+      {
+        "text": "REDKEN REDKEN",
+        "confidence": 0.9856349865634993
+      },
+      {
+        "text": "REDKEN REDKEN REDKE",
+        "confidence": 0.9727995129775701
+      },
+      {
+        "text": "REDKEN",
+        "confidence": 0.9821426896406318
+      },
+      {
+        "text": "REDKEN",
+        "confidence": 0.6236217185627484
+      },
+      {
+        "text": "REDKEN",
+        "confidence": 0.9935651646785504
+      }
+    ]
+  }
+]

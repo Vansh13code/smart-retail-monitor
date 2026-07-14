@@ -1,0 +1,28 @@
+[
+  {
+    "text": "Ieed ced army Zone nonade Gabanl Image ID: MBGFRO alamy WWW.alamy com",
+    "confidence": 0.7111767725907484,
+    "blocks": [
+      {
+        "text": "Ieed ced",
+        "confidence": 0.8964425947315668
+      },
+      {
+        "text": "army",
+        "confidence": 0.4504232406616211
+      },
+      {
+        "text": "Zone",
+        "confidence": 0.742946445941925
+      },
+      {
+        "text": "nonade Gabanl",
+        "confidence": 0.6742949759534654
+      },
+      {
+        "text": "Image ID: MBGFRO alamy WWW.alamy com",
+        "confidence": 0.7917766056651633
+      }
+    ]
+  }
+]

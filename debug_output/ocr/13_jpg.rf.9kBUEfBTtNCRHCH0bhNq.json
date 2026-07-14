@@ -1,0 +1,42 @@
+[
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "3",
+    "confidence": 0.9897624171822486,
+    "blocks": [
+      {
+        "text": "3",
+        "confidence": 0.9897624171822486
+      }
+    ]
+  },
+  {
+    "text": "K",
+    "confidence": 0.6153352363597584,
+    "blocks": [
+      {
+        "text": "K",
+        "confidence": 0.6153352363597584
+      }
+    ]
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  }
+]
