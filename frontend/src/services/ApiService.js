@@ -4,7 +4,7 @@ const url = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 const api = axios.create({
   baseURL: url,
-  timeout: 120000,
+  timeout: 300000,
 });
 
 api.interceptors.response.use(
@@ -52,13 +52,58 @@ async function postFile(endpoint, file, onUploadProgress) {
   return response.data;
 }
 
+async function postFilename(endpoint, filename) {
+  const form = new FormData();
+  form.append("filename", filename);
+  const response = await api.post(endpoint, form, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+}
+
+async function pollVideoTask(taskId, onProgress, intervalMs = 2000) {
+  return new Promise((resolve, reject) => {
+    const timer = setInterval(async () => {
+      try {
+        const response = await api.get(`/video-analysis/status/${taskId}`);
+        const task = response.data?.data || response.data;
+        const progress = task.progress || 0;
+        const status = task.status || "processing";
+
+        if (onProgress) onProgress(progress, status);
+
+        if (status === "completed") {
+          clearInterval(timer);
+          resolve(task.results || task);
+        } else if (status === "failed" || status === "cancelled") {
+          clearInterval(timer);
+          reject(new Error(task.error || `Video processing ${status}.`));
+        }
+      } catch (err) {
+        clearInterval(timer);
+        reject(err);
+      }
+    }, intervalMs);
+  });
+}
+
 async function healthCheck() {
   const response = await api.get("/health/");
+  return response.data;
+}
+
+async function cancelVideoTask(taskId) {
+  const response = await api.post(`/video-analysis/cancel/${taskId}`);
   return response.data;
 }
 
 export default {
   uploadFile,
   postFile,
+  postFilename,
+  pollVideoTask,
+  cancelVideoTask,
   healthCheck,
 };

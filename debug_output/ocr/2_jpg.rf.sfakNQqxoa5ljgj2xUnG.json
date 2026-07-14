@@ -75,16 +75,6 @@
     "blocks": []
   },
   {
-    "text": "3",
-    "confidence": 0.7353767112444984,
-    "blocks": [
-      {
-        "text": "3",
-        "confidence": 0.7353767112444984
-      }
-    ]
-  },
-  {
     "text": "",
     "confidence": 0.0,
     "blocks": []
@@ -220,16 +210,6 @@
     "blocks": []
   },
   {
-    "text": "Id",
-    "confidence": 0.7479673583495811,
-    "blocks": [
-      {
-        "text": "Id",
-        "confidence": 0.7479673583495811
-      }
-    ]
-  },
-  {
     "text": "",
     "confidence": 0.0,
     "blocks": []
@@ -285,14 +265,19 @@
     "blocks": []
   },
   {
-    "text": "d",
-    "confidence": 0.7010819744440511,
-    "blocks": [
-      {
-        "text": "d",
-        "confidence": 0.7010819744440511
-      }
-    ]
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
   },
   {
     "text": "",

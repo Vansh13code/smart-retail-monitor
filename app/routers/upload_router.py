@@ -1,8 +1,8 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 import cv2
 import numpy as np
-import uuid
 import os
+import time
 
 router = APIRouter(
     prefix="/upload-image",
@@ -15,10 +15,9 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/")
 async def upload_file(file: UploadFile = File(...)):
+    start_time = time.time()
 
-    # Generate unique filename while keeping original extension
-    extension = os.path.splitext(file.filename)[1]
-    filename = f"{uuid.uuid4().hex}{extension}"
+    filename = file.filename
     path = os.path.join(UPLOAD_DIR, filename)
 
     contents = await file.read()
@@ -42,14 +41,18 @@ async def upload_file(file: UploadFile = File(...)):
 
         return {
             "success": True,
-            "file_type": "image",
-            "filename": filename,
-            "path": path,
-            "shape": {
-                "height": image.shape[0],
-                "width": image.shape[1],
-                "channels": image.shape[2]
-            }
+            "message": "Image uploaded successfully.",
+            "data": {
+                "file_type": "image",
+                "filename": filename,
+                "path": path,
+                "shape": {
+                    "height": image.shape[0],
+                    "width": image.shape[1],
+                    "channels": image.shape[2]
+                }
+            },
+            "processing_time": round(time.time() - start_time, 4)
         }
 
     # ================= VIDEO =================
@@ -73,14 +76,18 @@ async def upload_file(file: UploadFile = File(...)):
 
         return {
             "success": True,
-            "file_type": "video",
-            "filename": filename,
-            "path": path,
-            "width": width,
-            "height": height,
-            "fps": round(fps, 2),
-            "total_frames": total_frames,
-            "duration_seconds": round(duration, 2)
+            "message": "Video uploaded successfully.",
+            "data": {
+                "file_type": "video",
+                "filename": filename,
+                "path": path,
+                "width": width,
+                "height": height,
+                "fps": round(fps, 2),
+                "total_frames": total_frames,
+                "duration_seconds": round(duration, 2)
+            },
+            "processing_time": round(time.time() - start_time, 4)
         }
 
     # ================= INVALID FILE =================
@@ -89,4 +96,4 @@ async def upload_file(file: UploadFile = File(...)):
         raise HTTPException(
             status_code=400,
             detail="Only image and video files are supported."
-        )
+        )

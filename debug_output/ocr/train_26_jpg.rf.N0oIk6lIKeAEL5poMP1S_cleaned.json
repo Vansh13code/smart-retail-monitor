@@ -1,7 +1,7 @@
 [
   {
-    "text": "",
-    "confidence": 0.0
+    "text": "E",
+    "confidence": 0.7973822667264905
   },
   {
     "text": "",
@@ -20,8 +20,8 @@
     "confidence": 0.0
   },
   {
-    "text": "",
-    "confidence": 0.0
+    "text": "F",
+    "confidence": 0.4588592029223868
   },
   {
     "text": "",
@@ -36,12 +36,12 @@
     "confidence": 0.6181048154830933
   },
   {
-    "text": "Q",
-    "confidence": 0.8298147086599705
+    "text": "",
+    "confidence": 0.0
   },
   {
-    "text": "FEXH",
-    "confidence": 0.537990927696228
+    "text": "E",
+    "confidence": 0.9870308689579019
   },
   {
     "text": "",
@@ -56,8 +56,8 @@
     "confidence": 0.0
   },
   {
-    "text": "",
-    "confidence": 0.0
+    "text": "2",
+    "confidence": 0.5414941356921332
   },
   {
     "text": "",
@@ -96,8 +96,8 @@
     "confidence": 0.0
   },
   {
-    "text": "",
-    "confidence": 0.0
+    "text": "62",
+    "confidence": 0.6259660064728582
   },
   {
     "text": "",
@@ -108,20 +108,20 @@
     "confidence": 0.0
   },
   {
-    "text": "",
-    "confidence": 0.0
-  },
-  {
-    "text": "IVH",
-    "confidence": 0.6837327544981849
+    "text": "5",
+    "confidence": 0.5951206381946719
   },
   {
     "text": "",
     "confidence": 0.0
   },
   {
-    "text": "W",
-    "confidence": 0.7839052907033626
+    "text": "",
+    "confidence": 0.0
+  },
+  {
+    "text": "",
+    "confidence": 0.0
   },
   {
     "text": "",
@@ -180,8 +180,12 @@
     "confidence": 0.0
   },
   {
-    "text": "AN",
-    "confidence": 0.5963997067736978
+    "text": "",
+    "confidence": 0.0
+  },
+  {
+    "text": "67",
+    "confidence": 0.5233428478240967
   },
   {
     "text": "",
@@ -268,8 +272,12 @@
     "confidence": 0.0
   },
   {
-    "text": "81",
-    "confidence": 0.8100961836003928
+    "text": "",
+    "confidence": 0.0
+  },
+  {
+    "text": "Z",
+    "confidence": 0.5159027222000567
   },
   {
     "text": "",
@@ -332,10 +340,6 @@
     "confidence": 0.0
   },
   {
-    "text": "KE",
-    "confidence": 0.5680612642566665
-  },
-  {
     "text": "",
     "confidence": 0.0
   },
@@ -372,12 +376,8 @@
     "confidence": 0.0
   },
   {
-    "text": "",
-    "confidence": 0.0
-  },
-  {
-    "text": "",
-    "confidence": 0.0
+    "text": "F",
+    "confidence": 0.6048287968071442
   },
   {
     "text": "",

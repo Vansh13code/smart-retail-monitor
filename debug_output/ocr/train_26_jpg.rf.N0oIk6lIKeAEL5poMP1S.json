@@ -1,8 +1,13 @@
 [
   {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
+    "text": "E",
+    "confidence": 0.7973822667264905,
+    "blocks": [
+      {
+        "text": "E",
+        "confidence": 0.7973822667264905
+      }
+    ]
   },
   {
     "text": "",
@@ -30,9 +35,14 @@
     "blocks": []
   },
   {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
+    "text": "F",
+    "confidence": 0.4588592029223868,
+    "blocks": [
+      {
+        "text": "F",
+        "confidence": 0.4588592029223868
+      }
+    ]
   },
   {
     "text": "",
@@ -55,22 +65,17 @@
     ]
   },
   {
-    "text": "Q",
-    "confidence": 0.8298147086599705,
-    "blocks": [
-      {
-        "text": "Q",
-        "confidence": 0.8298147086599705
-      }
-    ]
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
   },
   {
-    "text": "Fexh",
-    "confidence": 0.537990927696228,
+    "text": "E",
+    "confidence": 0.9870308689579019,
     "blocks": [
       {
-        "text": "Fexh",
-        "confidence": 0.537990927696228
+        "text": "E",
+        "confidence": 0.9870308689579019
       }
     ]
   },
@@ -90,9 +95,14 @@
     "blocks": []
   },
   {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
+    "text": "2",
+    "confidence": 0.5414941356921332,
+    "blocks": [
+      {
+        "text": "2",
+        "confidence": 0.5414941356921332
+      }
+    ]
   },
   {
     "text": "",
@@ -145,32 +155,12 @@
     "blocks": []
   },
   {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
-  },
-  {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
-  },
-  {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
-  },
-  {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
-  },
-  {
-    "text": "IVH",
-    "confidence": 0.6837327544981849,
+    "text": "62",
+    "confidence": 0.6259660064728582,
     "blocks": [
       {
-        "text": "IVH",
-        "confidence": 0.6837327544981849
+        "text": "62",
+        "confidence": 0.6259660064728582
       }
     ]
   },
@@ -180,14 +170,34 @@
     "blocks": []
   },
   {
-    "text": "W",
-    "confidence": 0.7839052907033626,
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "5",
+    "confidence": 0.5951206381946719,
     "blocks": [
       {
-        "text": "W",
-        "confidence": 0.7839052907033626
+        "text": "5",
+        "confidence": 0.5951206381946719
       }
     ]
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
   },
   {
     "text": "",
@@ -265,12 +275,17 @@
     "blocks": []
   },
   {
-    "text": "An",
-    "confidence": 0.5963997067736978,
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "67",
+    "confidence": 0.5233428478240967,
     "blocks": [
       {
-        "text": "An",
-        "confidence": 0.5963997067736978
+        "text": "67",
+        "confidence": 0.5233428478240967
       }
     ]
   },
@@ -380,12 +395,17 @@
     "blocks": []
   },
   {
-    "text": "81",
-    "confidence": 0.8100961836003928,
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "Z",
+    "confidence": 0.5159027222000567,
     "blocks": [
       {
-        "text": "81",
-        "confidence": 0.8100961836003928
+        "text": "Z",
+        "confidence": 0.5159027222000567
       }
     ]
   },
@@ -465,69 +485,59 @@
     "blocks": []
   },
   {
-    "text": "Ke",
-    "confidence": 0.5680612642566665,
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "",
+    "confidence": 0.0,
+    "blocks": []
+  },
+  {
+    "text": "F",
+    "confidence": 0.6048287968071442,
     "blocks": [
       {
-        "text": "Ke",
-        "confidence": 0.5680612642566665
+        "text": "F",
+        "confidence": 0.6048287968071442
       }
     ]
-  },
-  {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
-  },
-  {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
-  },
-  {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
-  },
-  {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
-  },
-  {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
-  },
-  {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
-  },
-  {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
-  },
-  {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
-  },
-  {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
-  },
-  {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
-  },
-  {
-    "text": "",
-    "confidence": 0.0,
-    "blocks": []
   },
   {
     "text": "",

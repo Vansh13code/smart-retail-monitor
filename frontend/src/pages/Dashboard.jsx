@@ -18,12 +18,15 @@ function firstNumber(...values) {
 
 function extractMetrics(analysisPayload) {
   const root = analysisPayload || {};
-  const stage = root?.result && typeof root.result === "object" ? root.result : root;
+  // Unwrap standardized response: {success, message, data, processing_time}
+  const unwrapped = root?.data && typeof root.data === "object" ? root.data : root;
+  const stage = unwrapped?.result && typeof unwrapped.result === "object" ? unwrapped.result : unwrapped;
 
   const products = firstNumber(
     stage?.products?.total_products,
     stage?.total_products,
     stage?.product_analysis?.total_products,
+    unwrapped?.product_analysis?.total_products,
     Array.isArray(stage?.products) ? stage.products.length : undefined,
     Array.isArray(stage?.classified_products) ? stage.classified_products.length : undefined
   );
@@ -32,14 +35,18 @@ function extractMetrics(analysisPayload) {
     Array.isArray(stage?.products?.shelf_inventory) ? stage.products.shelf_inventory.length : undefined,
     Array.isArray(stage?.shelf_inventory) ? stage.shelf_inventory.length : undefined,
     Array.isArray(stage?.product_analysis?.shelf_inventory) ? stage.product_analysis.shelf_inventory.length : undefined,
+    Array.isArray(unwrapped?.product_analysis?.shelf_inventory) ? unwrapped.product_analysis.shelf_inventory.length : undefined,
+    unwrapped?.total_detections,
     stage?.total_detections,
-    Array.isArray(stage?.detections) ? stage.detections.length : undefined
+    Array.isArray(stage?.detections) ? stage.detections.length : undefined,
+    Array.isArray(unwrapped?.detections) ? unwrapped.detections.length : undefined
   );
 
   const ocrTags = firstNumber(
     stage?.ocr?.total_price_tags,
     stage?.total_price_tags,
-    stage?.result?.total_price_tags
+    stage?.result?.total_price_tags,
+    unwrapped?.total_price_tags
   );
 
   const customers = firstNumber(
@@ -51,6 +58,7 @@ function extractMetrics(analysisPayload) {
   const inventory = firstNumber(
     Array.isArray(stage?.inventory) ? stage.inventory.length : undefined,
     Array.isArray(stage) ? stage.length : undefined,
+    Array.isArray(unwrapped?.result) ? unwrapped.result.length : undefined,
     Array.isArray(stage?.shelf_inventory) ? stage.shelf_inventory.length : undefined,
     Array.isArray(stage?.products?.shelf_inventory) ? stage.products.shelf_inventory.length : undefined
   );
@@ -71,6 +79,7 @@ function extractMetrics(analysisPayload) {
     categoryCount,
   };
 }
+
 
 export default function Dashboard() {
   const { latestUpload, lastAnalysis } = useUploadContext();

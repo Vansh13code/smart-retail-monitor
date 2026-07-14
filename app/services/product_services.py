@@ -1,15 +1,27 @@
 from collections import Counter
+import numpy as np
 
 
 class ProductService:
 
     def __init__(self):
 
+        # Expanded product classes to support retail inventory
         self.product_classes = [
             "Shampoo",
             "milk",
             "snacks",
-            "soft_drink"
+            "soft_drink",
+            "Bread",
+            "Beverages",
+            "Chocolate",
+            "Juice",
+            "Biscuits",
+            "Rice",
+            "Oil",
+            "Soap",
+            "Detergent",
+            "Toothpaste"
         ]
 
         # Accept common label variations from custom and generic detectors.
@@ -22,15 +34,31 @@ class ProductService:
             "softdrink": "soft_drink",
             "soft drink": "soft_drink",
             "soft_drink": "soft_drink",
+            "bread": "Bread",
+            "beverage": "Beverages",
+            "beverages": "Beverages",
+            "chocolate": "Chocolate",
+            "juice": "Juice",
+            "biscuit": "Biscuits",
+            "biscuits": "Biscuits",
+            "rice": "Rice",
+            "oil": "Oil",
+            "soap": "Soap",
+            "detergent": "Detergent",
+            "toothpaste": "Toothpaste",
             "shelf": "Shelf",
             # Fallback aliases for generic detectors when custom retail weights are unavailable.
             "bottle": "soft_drink",
-            "cup": "milk"
+            "cup": "milk",
+            "person": "Person"
         }
 
         self._normalized_product_classes = {
             self._normalize_label(name) for name in self.product_classes
         }
+        
+        # Tracking ID counter for product tracking
+        self._next_track_id = 1
 
     def _normalize_label(self, label):
         return str(label or "").strip().lower().replace("-", " ").replace("_", " ")
@@ -52,7 +80,13 @@ class ProductService:
         for detection in detections:
 
             normalized = self._normalize_detection(detection)
-            if self._normalize_label(normalized.get("class")) in self._normalized_product_classes:
+            # Accept any class that's in our product classes OR has a reasonable confidence
+            normalized_label = self._normalize_label(normalized.get("class"))
+            if normalized_label in self._normalized_product_classes or detection.get("confidence", 0) > 0.3:
+                # Add tracking ID if not present
+                if "track_id" not in normalized:
+                    normalized["track_id"] = self._next_track_id
+                    self._next_track_id += 1
                 products.append(normalized)
 
         return products
@@ -84,7 +118,8 @@ class ProductService:
             {
                 "id": product["id"],
                 "class": product["class"],
-                "confidence": product["confidence"]
+                "confidence": product["confidence"],
+                "track_id": product.get("track_id", product["id"])
             }
 
             for product in products
@@ -98,12 +133,29 @@ class ProductService:
             {
                 "id": product["id"],
                 "class": product["class"],
-                "bbox": product["bbox"]
+                "bbox": product["bbox"],
+                "track_id": product.get("track_id", product["id"])
             }
 
             for product in products
 
         ]
+    
+    def get_confidence_histogram(self, products, bins=10):
+        """Generate confidence histogram data"""
+        if not products:
+            return {"bins": [], "counts": []}
+        
+        confidences = [p["confidence"] for p in products]
+        hist, bin_edges = np.histogram(confidences, bins=bins, range=(0, 1))
+        
+        return {
+            "bins": [round(float(edge), 2) for edge in bin_edges.tolist()],
+            "counts": hist.tolist(),
+            "mean_confidence": round(np.mean(confidences), 3),
+            "median_confidence": round(np.median(confidences), 3),
+            "std_confidence": round(np.std(confidences), 3)
+        }
 
     def point_inside(self, product_bbox, shelf_bbox):
 
@@ -202,6 +254,10 @@ class ProductService:
 
           "bounding_boxes": self.get_bounding_boxes(products),
 
-          "shelf_inventory": shelf_inventory
+          "shelf_inventory": shelf_inventory,
+          
+          "confidence_histogram": self.get_confidence_histogram(products),
+
+          "tracking_ids": [p.get("track_id", p["id"]) for p in products]
 
       }

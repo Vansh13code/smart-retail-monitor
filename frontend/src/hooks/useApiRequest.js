@@ -32,5 +32,6 @@ export default function useApiRequest() {
     progress,
     run,
     setError,
+    setLoading,
   };
 }

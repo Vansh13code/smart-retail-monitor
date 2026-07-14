@@ -56,14 +56,17 @@ export function UploadProvider({ children }) {
 
   const registerUpload = (metadata, file) => {
     const preview = file ? URL.createObjectURL(file) : latestUpload?.preview || null;
+    // Unwrap standardized response: metadata may contain {success, data, ...}
+    const unwrapped = metadata?.data && typeof metadata.data === "object" ? metadata.data : metadata;
     setSelectedFile(file || selectedFile);
     setLatestUpload({
-      fileName: file?.name || metadata?.filename || latestUpload?.fileName,
-      fileType: file?.type || metadata?.file_type || latestUpload?.fileType,
-      path: metadata?.path || metadata?.filename || latestUpload?.path,
-      metadata,
+      fileName: file?.name || unwrapped?.filename || latestUpload?.fileName,
+      fileType: file?.type || unwrapped?.file_type || latestUpload?.fileType,
+      path: unwrapped?.path || unwrapped?.filename || latestUpload?.path,
+      metadata: unwrapped,
       preview,
       selectedAt: new Date().toISOString(),
+      fileSize: file?.size || unwrapped?.file_size || latestUpload?.fileSize,
     });
   };
 

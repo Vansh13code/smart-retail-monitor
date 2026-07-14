@@ -1,8 +1,10 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException
 import cv2
 import numpy as np
 import tempfile
 import os
+import shutil
+import time
 
 from app.services.pipeline_services import PipelineService
 
@@ -15,101 +17,94 @@ pipeline = PipelineService()
 
 
 @router.post("/")
-async def pipeline_process(file: UploadFile = File(...)):
+async def pipeline_process(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(None),
+    filename: str = Form(None)
+):
+    start_time = time.time()
 
-    content_type = file.content_type or ""
+    # Determine if request is video
+    is_video = False
+    if file is not None:
+        is_video = file.content_type.startswith("video/") if file.content_type else False
+    elif filename is not None:
+        is_video = os.path.splitext(filename)[1].lower() in (".mp4", ".avi", ".mov", ".mkv", ".mov")
 
-    # ================= IMAGE =================
-    if content_type.startswith("image/"):
+    # ================= VIDEO BACKGROUND PROCESSING =================
+    if is_video:
+        if file is not None:
+            os.makedirs("uploads", exist_ok=True)
+            video_path = os.path.join("uploads", file.filename)
+            with open(video_path, "wb") as f:
+                f.write(await file.read())
+            video_name = file.filename
+        else:
+            video_path = os.path.join("uploads", filename)
+            if not os.path.exists(video_path):
+                raise HTTPException(status_code=400, detail="Video file not found.")
+            # copy temp
+            temp_name = f"temp_{int(time.time())}_{filename}"
+            temp_path = os.path.join("uploads", temp_name)
+            shutil.copyfile(video_path, temp_path)
+            video_path = temp_path
+            video_name = filename
 
+        from app.services.video_task_service import create_task, process_video_background
+        task_id = create_task(video_name, "pipeline")
+        background_tasks.add_task(process_video_background, task_id, video_path, "pipeline")
+
+        return {
+            "success": True,
+            "message": "Video pipeline process started in the background.",
+            "data": {
+                "task_id": task_id,
+                "status": "processing",
+                "progress": 0,
+                "is_video": True
+            },
+            "processing_time": round(time.time() - start_time, 4)
+        }
+
+    # ================= IMAGE PROCESSING =================
+    if file is not None:
         contents = await file.read()
-
-        frame = cv2.imdecode(
-            np.frombuffer(contents, np.uint8),
-            cv2.IMREAD_COLOR
-        )
-
+        frame = cv2.imdecode(np.frombuffer(contents, np.uint8), cv2.IMREAD_COLOR)
         if frame is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid image."
-            )
-
-        result = pipeline.process(frame)
-
-        return {
-            "success": True,
-            "file_type": "image",
-            "result": result
-        }
-
-    # ================= VIDEO =================
-    elif content_type.startswith("video/"):
-
-        suffix = os.path.splitext(file.filename)[1]
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp:
-            temp.write(await file.read())
-            video_path = temp.name
-
-        cap = cv2.VideoCapture(video_path)
-
-        if not cap.isOpened():
-            os.remove(video_path)
-            raise HTTPException(
-                status_code=400,
-                detail="Unable to open video."
-            )
-
-        results = []
-        frame_number = 0
-
-        while True:
-
-            success, frame = cap.read()
-
-            if not success:
-                break
-
-            frame_number += 1
-
-            # Process every 10th frame
-            if frame_number % 10 != 0:
-                continue
-
-            try:
-
-                output = pipeline.process(frame)
-
-                results.append({
-                    "frame": frame_number,
-                    "status": "Processed",
-                    "result": output
-                })
-
-            except Exception as e:
-
-                results.append({
-                    "frame": frame_number,
-                    "status": "Failed",
-                    "error": str(e)
-                })
-
-        cap.release()
-        os.remove(video_path)
-
-        return {
-            "success": True,
-            "file_type": "video",
-            "video_name": file.filename,
-            "frames_processed": len(results),
-            "results": results
-        }
-
-    # ================= INVALID FILE =================
+            raise HTTPException(status_code=400, detail="Invalid image file.")
+    elif filename is not None:
+        path = os.path.join("uploads", filename)
+        if not os.path.exists(path):
+            raise HTTPException(status_code=400, detail=f"Image file {filename} not found.")
+        frame = cv2.imread(path)
+        if frame is None:
+            raise HTTPException(status_code=400, detail="Invalid image file on server.")
     else:
+        raise HTTPException(status_code=400, detail="No file or filename provided.")
 
-        raise HTTPException(
-            status_code=400,
-            detail="Only image and video files are supported."
-        )
+    result = pipeline.process(frame)
+    if isinstance(result, dict) and "customers" in result:
+        cust = result["customers"]
+        if isinstance(cust, dict):
+            cust = dict(cust)
+            cust.pop("annotated_frame", None)
+            result["customers"] = cust
+
+    # Add comprehensive response fields
+    h, w = frame.shape[:2]
+    result["file_type"] = "image"
+    result["processing_time"] = round(time.time() - start_time, 4)
+
+    result_data = {
+        "file_type": "image",
+        "model_name": "best.pt",
+        "image_size": {"width": w, "height": h},
+        "result": result
+    }
+
+    return {
+        "success": True,
+        "message": "Pipeline processing completed successfully.",
+        "data": result_data,
+        "processing_time": round(time.time() - start_time, 4)
+    }

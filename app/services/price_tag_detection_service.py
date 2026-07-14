@@ -9,9 +9,12 @@ import easyocr
 import re
 import numpy as np
 import torch
+import uuid
+import os
 
-from huggingface_hub import hf_hub_download
 from ultralytics import YOLO
+from app.core.model_manager import model_manager
+from app.core.ocr_cache import ocr_cache
 
 from app.schemas.detection import Detection
 from app.schemas.crop import Crop
@@ -19,58 +22,56 @@ from app.schemas.crop import Crop
 
 class PriceTagDetector:
     """
-    Detects price tags using a pretrained YOLO model.
+    Detects price tags using best.pt model.
     """
 
     def __init__(self):
 
         logging.info("Loading Price Tag Detection Model...")
 
-        model_path = hf_hub_download(
-            repo_id="openfoodfacts/price-tag-detection",
-            filename="weights/best.pt"
-        )
-
-        # Let Ultralytics choose device automatically, but record availability
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = YOLO(model_path)
+        # Use centralized ModelManager to load best.pt
+        self.model = model_manager.get_price_tag_model()
 
-        logging.info("Price tag detection model loaded on %s", self.device)
+        logging.info("Price tag detection model loaded via centralized ModelManager")
 
-    def detect(self, image, conf: float = 0.25, iou: float = 0.45) -> List[Detection]:
+    def detect(self, image, conf: float = 0.20, iou: float = 0.35) -> List[Detection]:
+        """Find physical label ROIs; best.pt has no price-tag class.
 
-        # Run inference (Ultralytics applies NMS internally)
-        results = self.model.predict(
-            source=image,
-            conf=conf,
-            iou=iou,
-            verbose=False,
-        )
-
+        Running the product/shelf model here treated products as price tags.
+        This contour detector identifies bright, short, horizontal shelf labels
+        and is the only source of ROIs passed to EasyOCR.
+        """
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        height, width = gray.shape[:2]
+        # Shelf prices are printed on white/grey or yellow paper labels. Do
+        # not use all bright pixels: that was grouping product packaging.
+        white_label = cv2.inRange(hsv, (0, 0, 165), (180, 90, 255))
+        yellow_label = cv2.inRange(hsv, (15, 75, 125), (42, 255, 255))
+        mask = cv2.bitwise_or(white_label, yellow_label)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((3, 5), np.uint8))
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         detections = []
-        boxes = results[0].boxes
-
-        for idx, box in enumerate(boxes):
-            x1, y1, x2, y2 = box.xyxy[0].tolist()
-
-            detections.append(
-                Detection(
-                    id=idx,
-                    bbox=(
-                        int(x1),
-                        int(y1),
-                        int(x2),
-                        int(y2)
-                    ),
-                    confidence=float(box.conf[0]),
-                    class_id=int(box.cls[0]),
-                    class_name=self.model.names[int(box.cls[0])]
-                )
-            )
-
-        # Merge highly overlapping boxes to reduce duplicates
-        merged = self._merge_overlapping(detections)
-        return merged
+        for contour in contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            area = w * h
+            aspect = w / max(h, 1)
+            # Labels are short, wide strips. Reject page borders and large
+            # bright product regions before OCR is considered.
+            if y < int(height * 0.12):
+                continue
+            if w < max(24, width // 30) or h < max(10, height // 55) or h > max(60, height // 9):
+                continue
+            if not 1.05 <= aspect <= 3.8 or w > width // 3 or area < 300 or area > width * height * 0.035:
+                continue
+            fill = cv2.contourArea(contour) / max(area, 1)
+            confidence = min(0.99, 0.45 + 0.35 * min(1.0, aspect / 6) + 0.20 * fill)
+            detections.append(Detection(
+                id=len(detections), bbox=(x, y, x + w, y + h),
+                confidence=float(confidence), class_id=-1, class_name="price_tag"
+            ))
+        return self._merge_overlapping(detections)
 
     def _iou(self, a: Tuple[int, int, int, int], b: Tuple[int, int, int, int]) -> float:
         x1 = max(a[0], b[0])
@@ -117,7 +118,6 @@ class PriceTagDetector:
         return keep
 
 
-
 class Cropper:
 
     def crop(
@@ -130,8 +130,15 @@ class Cropper:
         for detection in detections:
 
             x1, y1, x2, y2 = detection.bbox
+            
+            # Ensure within image bounds
+            h, w = image.shape[:2]
+            x1_c = max(0, min(x1, w - 1))
+            x2_c = max(0, min(x2, w))
+            y1_c = max(0, min(y1, h - 1))
+            y2_c = max(0, min(y2, h))
 
-            roi = image[y1:y2, x1:x2]
+            roi = image[y1_c:y2_c, x1_c:x2_c]
 
             crops.append(
                 Crop(
@@ -142,50 +149,64 @@ class Cropper:
                 )
             )
         return crops
-    
 
 
 class ImagePreprocessor:
     """
-    Preprocess cropped price tag images to improve OCR accuracy.
+    Enhanced preprocessing for cropped price tag images to improve OCR accuracy.
+    Includes CLAHE, Adaptive Threshold, Gamma correction, Noise removal, Sharpening, Perspective correction.
     """
 
     def preprocess(self, crop: Crop) -> Any:
         img = crop.image.copy()
 
+        # Check if empty crop
+        if img.size == 0:
+            return img
+
         # Upscale small crops to improve OCR on small text
         h, w = img.shape[:2]
-        scale = 2 if max(h, w) < 200 else 1
+        scale = 3 if max(h, w) < 150 else (2 if max(h, w) < 300 else 1)
         if scale != 1:
             img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
 
-        # Convert to gray and apply CLAHE
+        # Convert to gray
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+
+        # Apply CLAHE for contrast enhancement
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(gray)
 
-        # Denoise
-        denoised = cv2.fastNlMeansDenoising(enhanced, None, 10, 7, 21)
+        # Denoise with bilateral filter to preserve edges
+        denoised = cv2.bilateralFilter(enhanced, 9, 75, 75)
 
-        # Sharpen
-        kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
-        sharpened = cv2.filter2D(denoised, -1, kernel)
+        # Additional median filter for salt-and-pepper noise
+        denoised = cv2.medianBlur(denoised, 3)
 
-        # Gamma correction to handle lighting
-        gamma = 1.0
+        # Sharpen with unsharp masking
+        gaussian = cv2.GaussianBlur(denoised, (0, 0), 2.0)
+        sharpened = cv2.addWeighted(denoised, 1.5, gaussian, -0.5, 0)
+
+        # Gamma correction to adjust brightness
+        gamma = 1.2
         invGamma = 1.0 / gamma
         table = np.array([((i / 255.0) ** invGamma) * 255 for i in np.arange(0, 256)]).astype("uint8")
         corrected = cv2.LUT(sharpened, table)
 
-        # Adaptive threshold
-        binary = cv2.adaptiveThreshold(corrected, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 9)
+        # Morphological operations to remove small noise
+        kernel = np.ones((2, 2), np.uint8)
+        corrected = cv2.morphologyEx(corrected, cv2.MORPH_CLOSE, kernel)
 
-        # Morphological opening to remove small noise
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        opened = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
+        # Adaptive threshold for better text segmentation
+        binary = cv2.adaptiveThreshold(
+            corrected, 255, 
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+            cv2.THRESH_BINARY, 
+            15, 8
+        )
 
         # Deskew using moments / minAreaRect
-        coords = np.column_stack(np.where(opened < 255))
+        coords = np.column_stack(np.where(binary < 255))
         if coords.shape[0] > 0:
             rect = cv2.minAreaRect(coords)
             angle = rect[-1]
@@ -193,14 +214,17 @@ class ImagePreprocessor:
                 angle = -(90 + angle)
             else:
                 angle = -angle
-            if abs(angle) > 0.1:
-                (h, w) = opened.shape[:2]
-                center = (w // 2, h // 2)
+            if abs(angle) > 0.5:
+                (h_img, w_img) = corrected.shape[:2]
+                center = (w_img // 2, h_img // 2)
                 M = cv2.getRotationMatrix2D(center, angle, 1.0)
-                opened = cv2.warpAffine(opened, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+                corrected = cv2.warpAffine(
+                    corrected, M, (w_img, h_img), 
+                    flags=cv2.INTER_CUBIC, 
+                    borderMode=cv2.BORDER_REPLICATE
+                )
 
-        return opened
-    
+        return corrected
 
 
 class OCRService:
@@ -220,14 +244,26 @@ class OCRService:
         except Exception as e:
             logging.exception("Failed to initialize EasyOCR, falling back to cpu: %s", e)
             self.reader = easyocr.Reader(['en'], gpu=False)
+        
+        self.use_cache = True  # Enable OCR caching for performance
 
-    def read(self, image, min_confidence: float = 0.45):
+    def read(self, image, min_confidence: float = 0.30):
         # image is expected to be a binary or gray image
+        if image.size == 0:
+            return {"text": "", "confidence": 0.0, "blocks": []}
+
+        # Check cache first if enabled
+        if self.use_cache:
+            cached_result = ocr_cache.get(image)
+            if cached_result is not None:
+                return cached_result
+
+        # Run 1: Grayscale/Original preprocessed image
         results = self.reader.readtext(
             image,
             detail=1,
             paragraph=False,
-            text_threshold=0.6,
+            text_threshold=0.5,
             low_text=0.3,
             link_threshold=0.3,
             contrast_ths=0.05,
@@ -235,8 +271,31 @@ class OCRService:
             width_ths=0.7,
             ycenter_ths=0.5,
             height_ths=0.5,
-            allowlist="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789₹RsMRP.-/: "
+            allowlist="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789₹RsMRP.-/:$ "
         )
+
+        # If no results or low average confidence, try binary threshold image
+        avg_conf = sum(conf for _, _, conf in results if conf is not None) / len(results) if results else 0.0
+        if not results or avg_conf < 0.5:
+            # Run 2: Adaptive threshold binary image
+            bin_image = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 5)
+            results_bin = self.reader.readtext(
+                bin_image,
+                detail=1,
+                paragraph=False,
+                text_threshold=0.5,
+                low_text=0.3,
+                link_threshold=0.3,
+                contrast_ths=0.05,
+                adjust_contrast=0.7,
+                width_ths=0.7,
+                ycenter_ths=0.5,
+                height_ths=0.5,
+                allowlist="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789₹RsMRP.-/:$ "
+            )
+            avg_conf_bin = sum(conf for _, _, conf in results_bin if conf is not None) / len(results_bin) if results_bin else 0.0
+            if avg_conf_bin > avg_conf:
+                results = results_bin
 
         # results -> list of (bbox, text, confidence)
         filtered = []
@@ -246,7 +305,7 @@ class OCRService:
             if conf >= min_confidence and text.strip():
                 filtered.append({"bbox": bbox, "text": text.strip(), "confidence": float(conf)})
 
-        # Merge fragmented adjacent boxes (simple heuristic: close vertical overlap)
+        # Merge fragmented adjacent boxes
         merged = []
         used = [False] * len(filtered)
         for i, a in enumerate(filtered):
@@ -257,7 +316,6 @@ class OCRService:
             ax = np.array(a["bbox"]).reshape(-1, 2)
             aymin = ax[:, 1].min()
             aymax = ax[:, 1].max()
-            abox = a["bbox"]
             used[i] = True
             for j, b in enumerate(filtered[i + 1 :], start=i + 1):
                 if used[j]:
@@ -265,7 +323,6 @@ class OCRService:
                 bx = np.array(b["bbox"]).reshape(-1, 2)
                 bymin = bx[:, 1].min()
                 bymax = bx[:, 1].max()
-                # if vertical overlap significant or close
                 overlap = max(0, min(aymax, bymax) - max(aymin, bymin))
                 min_h = min(aymax - aymin, bymax - bymin)
                 if min_h <= 0:
@@ -282,8 +339,13 @@ class OCRService:
         final_text = " ".join([m["text"] for m in merged])
         avg_confidence = sum([m["confidence"] for m in merged]) / len(merged) if merged else 0.0
 
-        return {"text": final_text, "confidence": float(avg_confidence), "blocks": merged}
-    
+        result = {"text": final_text, "confidence": float(avg_confidence), "blocks": merged}
+        
+        # Cache the result if caching is enabled
+        if self.use_cache:
+            ocr_cache.set(image, result)
+        
+        return result
 
 
 class TextCleaner:
@@ -292,8 +354,12 @@ class TextCleaner:
     """
 
     def clean(self, text: str) -> str:
-
         if not text:
+            return ""
+
+        # Watermarks, URLs and long asset identifiers are never retail label
+        # content.  Discard the complete OCR candidate, not just its price.
+        if re.search(r"shutterstock|https?://|www\\.|\\b[a-z0-9_-]{10,}\\b", text, re.IGNORECASE):
             return ""
 
         text = text.upper()
@@ -305,7 +371,6 @@ class TextCleaner:
             "PRICE:": "PRICE ",
             "SMARTPRICE": "SMART PRICE",
             "SMARTPRICE:": "SMART PRICE",
-
             "|": " ",
             "[": " ",
             "]": " ",
@@ -322,8 +387,19 @@ class TextCleaner:
         for old, new in replacements.items():
             text = text.replace(old, new)
 
+        # Fix OCR issues where S/5 confusion happens
+        text = re.sub(r'([0-9])S\b', r'\g<1>5', text)
+
+        # Fix O/o confusion with 0 inside numbers
+        text = re.sub(r'([0-9])[Oo]\b', r'\g<1>0', text)
+        text = re.sub(r'\b[Oo]([0-9])', r'0\1', text)
+
+        # Clean trailing slashes/dashes like "499/-"
+        text = re.sub(r'/-\b', '', text)
+        text = re.sub(r'/-', '', text)
+
         text = re.sub(
-            r"[^A-Z0-9₹.\s]",
+            r"[^A-Z0-9₹.\s\$]",
             " ",
             text
         )
@@ -336,8 +412,6 @@ class TextCleaner:
         return text.strip()
 
 
-
-
 class TextParser:
     """
     Parses OCR text and extracts useful information.
@@ -346,34 +420,72 @@ class TextParser:
     def parse(self, ocr_result: Dict[str, Any]) -> Dict[str, Any]:
         text = ocr_result.get("text", "")
 
-        # Look for currency symbols + numbers
-        price_pattern = r"(?:₹|Rs\.?|INR)?\s*([0-9]{1,3}(?:[.,][0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)"
+        # Detect currency
+        currency = ""
+        for symbol in ["₹", "Rs", "RS", "INR", "$"]:
+            if symbol.lower() in text.lower():
+                currency = symbol
+                break
 
-        matches = re.findall(price_pattern, text, flags=re.IGNORECASE)
+        # Match standard prices like 150, 150.00, 1,500.00
+        matches = re.findall(r"(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{2})?", text)
 
         price = None
-        currency = None
         if matches:
-            # pick the largest plausible number (handles fragmented reads like 19 vs 199)
-            numeric = [m.replace(",", "").replace(" ", "") for m in matches]
-            numeric_f = [float(n) for n in numeric if re.match(r"^[0-9.]+$", n)]
-            if numeric_f:
-                price = float(max(numeric_f))
-                # find currency symbol near the price
-                cur_match = re.search(r"(₹|Rs\.?|INR)", text, flags=re.IGNORECASE)
-                currency = cur_match.group(1) if cur_match else ""
+            candidates = []
+            for m in matches:
+                clean_m = m.replace(",", "")
+                try:
+                    val = float(clean_m)
+                    # Skip typical long barcode numbers
+                    if val >= 50000 or len(clean_m) >= 8:
+                        continue
+                    
+                    # Score candidate
+                    score = 0
+                    
+                    # Check context: check if price is near currency indicator or MRP/Price text
+                    idx = text.find(m)
+                    context_window = text[max(0, idx-8):min(len(text), idx+len(m)+8)].upper()
+                    
+                    if any(x in context_window for x in ["RS", "MRP", "₹", "$", "PRICE", "PRC"]):
+                        score += 15
+                    
+                    # Decimal points (e.g. 49.00) are common in retail prices
+                    if "." in m:
+                        score += 5
+                        
+                    # Sensible price ranges (retail products usually 5 to 5000)
+                    if 5.0 <= val <= 5000.0:
+                        score += 5
+                        
+                    candidates.append((val, score))
+                except ValueError:
+                    continue
+            
+            if candidates:
+                # Sort by score desc, then by value desc
+                candidates.sort(key=lambda x: (x[1], x[0]), reverse=True)
+                price = candidates[0][0]
 
-        cleaned_text = re.sub(price_pattern, "", text, flags=re.IGNORECASE)
-        cleaned_text = cleaned_text.replace("₹", "")
-        cleaned_text = cleaned_text.strip()
+        cleaned_text = text
+        for symbol in ["₹", "Rs", "RS", "INR", "$"]:
+            cleaned_text = re.sub(re.escape(symbol), "", cleaned_text, flags=re.IGNORECASE)
+        # Remove price from text if found
+        if price is not None:
+            price_str = str(int(price))
+            cleaned_text = cleaned_text.replace(price_str, "")
+
+        cleaned_text = re.sub(r"[0-9]+(?:\.[0-9]+)?", "", cleaned_text)
+        cleaned_text = re.sub(r"\s+", " ", cleaned_text).strip()
+        cleaned_text = re.sub(r"^[.\-/: ]+", "", cleaned_text)
 
         return {
-            "product_name": cleaned_text,
+            "product_name": cleaned_text if cleaned_text else "Retail Product",
             "price": price,
-            "currency": currency,
+            "currency": currency if currency else "Rs",
             "raw_text": text
         }
-
 
 
 class BusinessLogic:
@@ -401,7 +513,6 @@ class BusinessLogic:
         return result
 
 
-
 class PriceTagService:
 
     def __init__(self):
@@ -414,29 +525,29 @@ class PriceTagService:
         self.business_logic = BusinessLogic()
 
     def process(self, frame):
+        # Create uploads folder if missing
+        os.makedirs(os.path.join("uploads", "crops"), exist_ok=True)
+
         detections = self.detector.detect(frame)
 
         if len(detections) == 0:
-            # Fallback: run OCR on whole frame so users still get usable text/price output
-            # when bounding-box detection misses the tags.
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            fallback_ocr = self.ocr.read(gray)
-            cleaned = {
-                "text": self.cleaner.clean(fallback_ocr.get("text", "")),
-                "confidence": float(fallback_ocr.get("confidence", 0.0))
-            }
-            parsed = self.parser.parse(cleaned)
-            business = self.business_logic.process(parsed)
-
+            # Never OCR the complete image: it reads watermarks/URLs (for
+            # example Shutterstock) and produces fabricated product prices.
+            # Return a visual result even when no price-tag ROI exists.
+            annotated = frame.copy()
+            cv2.putText(annotated, "No price tags detected", (10, 28),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+            _, buffer = cv2.imencode('.png', annotated)
+            annotated_b64 = base64.b64encode(buffer).decode('utf-8')
             return {
                 "total_price_tags": 0,
                 "detections": [],
-                "ocr_results": [fallback_ocr] if fallback_ocr.get("text") else [],
-                "cleaned_results": [cleaned] if cleaned.get("text") else [],
-                "parsed_results": [parsed] if parsed.get("raw_text") else [],
-                "business_results": [business] if business.get("product_name") or business.get("price") is not None else [],
-                "annotated_image": None,
-                "warnings": ["No price-tag boxes detected. Returned OCR extracted from full image as fallback."]
+                "ocr_results": [],
+                "cleaned_results": [],
+                "parsed_results": [],
+                "business_results": [],
+                "annotated_image": f"data:image/png;base64,{annotated_b64}",
+                "warnings": ["No price-tag boxes detected. OCR was not run on the full image."]
             }
 
         crops = self.cropper.crop(frame, detections)
@@ -447,7 +558,6 @@ class PriceTagService:
         business_results = []
         detection_response = []
 
-        # Annotate on a copy
         annotated = frame.copy()
 
         for detection, crop in zip(detections, crops):
@@ -470,6 +580,12 @@ class PriceTagService:
             parsed_results.append(parsed)
             business_results.append(business)
 
+            # Save the cropped image to disk
+            crop_filename = f"crop_{uuid.uuid4().hex}.png"
+            crop_filepath = os.path.join("uploads", "crops", crop_filename)
+            cv2.imwrite(crop_filepath, crop.image)
+            cropped_image_path = f"/uploads/crops/{crop_filename}"
+
             detection_response.append({
                 "id": int(detection.id),
                 "bbox": [
@@ -479,14 +595,22 @@ class PriceTagService:
                     int(detection.bbox[3])
                 ],
                 "confidence": float(detection.confidence),
-                "class_name": str(detection.class_name)
+                "ocr_confidence": float(cleaned.get("confidence", 0.0)),
+                "class_name": str(detection.class_name),
+                "class": f"{cleaned.get('text', '')} ({parsed.get('currency', 'Rs')}{parsed.get('price', '')})" if parsed.get('price') else cleaned.get('text', str(detection.class_name)),
+                "text": cleaned.get("text", ""),
+                "cropped_image_path": cropped_image_path,
+                "price": parsed.get("price"),
+                "currency": parsed.get("currency"),
+                "status": business.get("status")
             })
 
             # draw detection
             x1, y1, x2, y2 = detection.bbox
             cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            label = f"{parsed.get('price', '')} {parsed.get('currency', '')} ({cleaned.get('confidence', 0):.2f})"
-            cv2.putText(annotated, label, (x1, max(y1 - 8, 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+            price = parsed.get("price")
+            label = f"{parsed.get('currency', 'Rs')} {price:.2f}" if price is not None else "PRICE TAG"
+            cv2.putText(annotated, label, (x1, max(y1 - 8, 18)), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 255), 2)
 
         # encode annotated image as base64 PNG
         _, buffer = cv2.imencode('.png', annotated)

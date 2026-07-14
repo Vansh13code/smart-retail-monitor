@@ -1,5 +1,8 @@
 import time
 import logging
+import cv2
+import base64
+import os
 
 from app.services.shelf_services import ShelfService
 from app.services.product_services import ProductService
@@ -30,7 +33,14 @@ class PipelineService:
             "customers": None,
             "warnings": [],
             "timings": {},
+            "annotated_image": None,
+            "model_name": "best.pt",
+            "image_size": None
         }
+
+        # Store image dimensions
+        h, w = frame.shape[:2]
+        response["image_size"] = {"width": w, "height": h}
 
         # Stage helper
         def run_stage(name, fn, *args, **kwargs):
@@ -87,6 +97,37 @@ class PipelineService:
         # -----------------------------
         customer_data = run_stage("customers", self.interaction_service.process, frame) or {}
         response["customers"] = customer_data
+
+        # -----------------------------
+        # Enhanced Annotation with all information
+        # -----------------------------
+        try:
+            enhanced_annotated = self.shelf_service.annotate_with_inventory(
+                frame, 
+                detections, 
+                shelf_inventory or [], 
+                ocr_data
+            )
+            
+            # Encode annotated image
+            _, buffer = cv2.imencode('.png', enhanced_annotated)
+            annotated_b64 = base64.b64encode(buffer).decode('utf-8')
+            response["annotated_image"] = f"data:image/png;base64,{annotated_b64}"
+            
+            # Save annotated image to outputs/
+            os.makedirs("outputs", exist_ok=True)
+            output_path = os.path.join("outputs", f"pipeline_output_{int(time.time())}.png")
+            cv2.imwrite(output_path, enhanced_annotated)
+            response["annotated_image_path"] = output_path
+            
+        except Exception as e:
+            logging.exception("Enhanced annotation failed: %s", e)
+            response["warnings"].append({"stage": "annotation", "error": str(e)})
+            # Fallback to basic annotation
+            if annotated_frame is not None:
+                _, buffer = cv2.imencode('.png', annotated_frame)
+                annotated_b64 = base64.b64encode(buffer).decode('utf-8')
+                response["annotated_image"] = f"data:image/png;base64,{annotated_b64}"
 
         # Final response
         return response
