@@ -1,0 +1,414 @@
+{
+  "score": 0.022684310018903593,
+  "conf": 0.5,
+  "iou": 0.3,
+  "imgsz": 960,
+  "ocr": "A",
+  "metrics": {
+    "precision": 0.05263157894736842,
+    "recall": 0.014457831325301205,
+    "f1": 0.022684310018903593,
+    "details": [
+      {
+        "file": "suggested-4SLASkEvWCNDPoJ0MPmo_jpg.rf.x5r40tLt9J6rLS0a4X82.jpg",
+        "tp": 0,
+        "fp": 1,
+        "fn": 48,
+        "pred": 1,
+        "gt": 48
+      },
+      {
+        "file": "30_jpg.rf.txsQ6GCHmmzV9V2t31e9.jpg",
+        "tp": 0,
+        "fp": 2,
+        "fn": 5,
+        "pred": 2,
+        "gt": 5
+      },
+      {
+        "file": "72_jpg.rf.dEhkzH96pRfZDcUNp5r4.jpg",
+        "tp": 0,
+        "fp": 2,
+        "fn": 8,
+        "pred": 2,
+        "gt": 8
+      },
+      {
+        "file": "suggested-q2CfdEplIsCB2T84rAlH_jpg.rf.HTS5RASVahLh8FukrHrF.jpg",
+        "tp": 0,
+        "fp": 1,
+        "fn": 31,
+        "pred": 1,
+        "gt": 31
+      },
+      {
+        "file": "31_jpg.rf.AMqYINOIpcM8WC5O09KW.jpg",
+        "tp": 0,
+        "fp": 4,
+        "fn": 6,
+        "pred": 4,
+        "gt": 6
+      },
+      {
+        "file": "12_jpg.rf.HsXVGKNAGPLQGpgsUvJA.jpg",
+        "tp": 0,
+        "fp": 3,
+        "fn": 8,
+        "pred": 3,
+        "gt": 8
+      },
+      {
+        "file": "25_jpg.rf.9GaqHp6HzdxppEHQYAfr.jpg",
+        "tp": 0,
+        "fp": 3,
+        "fn": 5,
+        "pred": 3,
+        "gt": 5
+      },
+      {
+        "file": "3_jpg.rf.jfgYoQvB5zHyl5GDooCx.jpg",
+        "tp": 0,
+        "fp": 1,
+        "fn": 8,
+        "pred": 1,
+        "gt": 8
+      },
+      {
+        "file": "38_jpg.rf.Ib9H7lBCoW12IRHdettv.jpg",
+        "tp": 0,
+        "fp": 4,
+        "fn": 7,
+        "pred": 4,
+        "gt": 7
+      },
+      {
+        "file": "30_jpg.rf.WuvB9EyAjePye7nCB0Nn.jpg",
+        "tp": 0,
+        "fp": 2,
+        "fn": 5,
+        "pred": 2,
+        "gt": 5
+      },
+      {
+        "file": "80_jpg.rf.5A4aRENFTIQtqsPs0vGC.jpg",
+        "tp": 0,
+        "fp": 0,
+        "fn": 5,
+        "pred": 0,
+        "gt": 5
+      },
+      {
+        "file": "26_jpg.rf.MLhffhMfHBHCmEioi9Fh.jpg",
+        "tp": 0,
+        "fp": 3,
+        "fn": 4,
+        "pred": 3,
+        "gt": 4
+      },
+      {
+        "file": "38_jpg.rf.4OwWLPUpOTYaRebmaqFO.jpg",
+        "tp": 0,
+        "fp": 2,
+        "fn": 4,
+        "pred": 2,
+        "gt": 4
+      },
+      {
+        "file": "29_jpg.rf.iL7dkLCXHDVrsZqaBSx1.jpg",
+        "tp": 0,
+        "fp": 2,
+        "fn": 2,
+        "pred": 2,
+        "gt": 2
+      },
+      {
+        "file": "45_jpg.rf.HljTi6Jq5wousARHMVeS.jpg",
+        "tp": 0,
+        "fp": 0,
+        "fn": 5,
+        "pred": 0,
+        "gt": 5
+      },
+      {
+        "file": "21_jpg.rf.JzsyJiUp7uAu8e33u2ky.jpg",
+        "tp": 0,
+        "fp": 3,
+        "fn": 5,
+        "pred": 3,
+        "gt": 5
+      },
+      {
+        "file": "9_jpg.rf.tTQ7MOTbPZflo4T9OhLx.jpg",
+        "tp": 0,
+        "fp": 5,
+        "fn": 6,
+        "pred": 5,
+        "gt": 6
+      },
+      {
+        "file": "15_jpg.rf.iMrfBSjqoiqeMYgRAXLr.jpg",
+        "tp": 0,
+        "fp": 4,
+        "fn": 3,
+        "pred": 4,
+        "gt": 3
+      },
+      {
+        "file": "26_jpg.rf.alJRQCM4ODSVEoEQEyfz.jpg",
+        "tp": 0,
+        "fp": 0,
+        "fn": 5,
+        "pred": 0,
+        "gt": 5
+      },
+      {
+        "file": "57_jpg.rf.8ZEeRmbakgBnSsbcN2XU.jpg",
+        "tp": 0,
+        "fp": 0,
+        "fn": 5,
+        "pred": 0,
+        "gt": 5
+      },
+      {
+        "file": "13_jpg.rf.TyXGMKXIUHATxK7Jw2PW.jpg",
+        "tp": 0,
+        "fp": 0,
+        "fn": 4,
+        "pred": 0,
+        "gt": 4
+      },
+      {
+        "file": "50_jpg.rf.Oc5HSS7NNEoRDNu05Ayh.jpg",
+        "tp": 0,
+        "fp": 7,
+        "fn": 5,
+        "pred": 7,
+        "gt": 5
+      },
+      {
+        "file": "train_43_jpg.rf.4k3y3bMq85Lhs2QMk2KG.jpg",
+        "tp": 1,
+        "fp": 11,
+        "fn": 13,
+        "pred": 12,
+        "gt": 14
+      },
+      {
+        "file": "40_jpg.rf.WtqDX4ZE1U9yVKMfVY13.jpg",
+        "tp": 0,
+        "fp": 4,
+        "fn": 6,
+        "pred": 4,
+        "gt": 6
+      },
+      {
+        "file": "19_jpg.rf.7iBrqrkKGaEosZv8Biu2.jpg",
+        "tp": 0,
+        "fp": 0,
+        "fn": 4,
+        "pred": 0,
+        "gt": 4
+      },
+      {
+        "file": "76_jpg.rf.wQDO7FLLzDDk2xS5CSfm.jpg",
+        "tp": 0,
+        "fp": 2,
+        "fn": 5,
+        "pred": 2,
+        "gt": 5
+      },
+      {
+        "file": "51_jpg.rf.UM5NkkQ2Ne9xAywsib82.jpg",
+        "tp": 0,
+        "fp": 4,
+        "fn": 5,
+        "pred": 4,
+        "gt": 5
+      },
+      {
+        "file": "13_jpg.rf.kIRrwEfgxjTADdZflrcH.jpg",
+        "tp": 0,
+        "fp": 2,
+        "fn": 6,
+        "pred": 2,
+        "gt": 6
+      },
+      {
+        "file": "28_jpg.rf.fAYrKJctwX4FuWVY2ysA.jpg",
+        "tp": 0,
+        "fp": 3,
+        "fn": 6,
+        "pred": 3,
+        "gt": 6
+      },
+      {
+        "file": "train_19_jpg.rf.IXVqCl6MEuBAaNNya1nD.jpg",
+        "tp": 1,
+        "fp": 5,
+        "fn": 8,
+        "pred": 6,
+        "gt": 9
+      },
+      {
+        "file": "25_jpg.rf.kjlwkLmZPrJU9JvRy8Du.jpg",
+        "tp": 0,
+        "fp": 1,
+        "fn": 7,
+        "pred": 1,
+        "gt": 7
+      },
+      {
+        "file": "13_jpg.rf.9kBUEfBTtNCRHCH0bhNq.jpg",
+        "tp": 0,
+        "fp": 0,
+        "fn": 5,
+        "pred": 0,
+        "gt": 5
+      },
+      {
+        "file": "21_jpg.rf.8IsHeox6iQNTF2usV0Q8.jpg",
+        "tp": 0,
+        "fp": 2,
+        "fn": 11,
+        "pred": 2,
+        "gt": 11
+      },
+      {
+        "file": "63_jpg.rf.C1znQvu4dXWIC11Yghne.jpg",
+        "tp": 0,
+        "fp": 0,
+        "fn": 5,
+        "pred": 0,
+        "gt": 5
+      },
+      {
+        "file": "20_jpg.rf.anUOjdqZ5HHBfgLnNc2b.jpg",
+        "tp": 0,
+        "fp": 1,
+        "fn": 5,
+        "pred": 1,
+        "gt": 5
+      },
+      {
+        "file": "42_jpg.rf.KM2u4oEsa5sz47xyTWAp.jpg",
+        "tp": 0,
+        "fp": 0,
+        "fn": 5,
+        "pred": 0,
+        "gt": 5
+      },
+      {
+        "file": "28_jpg.rf.9k0UdjUClReHojwHHcZb.jpg",
+        "tp": 0,
+        "fp": 4,
+        "fn": 8,
+        "pred": 4,
+        "gt": 8
+      },
+      {
+        "file": "64_jpg.rf.UrtCbfUzlSPhUXdqXxTk.jpg",
+        "tp": 0,
+        "fp": 1,
+        "fn": 6,
+        "pred": 1,
+        "gt": 6
+      },
+      {
+        "file": "9_jpg.rf.Sj3Tp8FG4D8sbM4iKLLU.jpg",
+        "tp": 0,
+        "fp": 0,
+        "fn": 5,
+        "pred": 0,
+        "gt": 5
+      },
+      {
+        "file": "23_jpg.rf.7PmPfIhKTebMjt7dBeCc.jpg",
+        "tp": 0,
+        "fp": 2,
+        "fn": 6,
+        "pred": 2,
+        "gt": 6
+      },
+      {
+        "file": "21_jpg.rf.uiVDDrbtcuXCBYpwFTU2.jpg",
+        "tp": 0,
+        "fp": 1,
+        "fn": 5,
+        "pred": 1,
+        "gt": 5
+      },
+      {
+        "file": "45_jpg.rf.U8OBaEOv7L1zr0bBYc8p.jpg",
+        "tp": 0,
+        "fp": 0,
+        "fn": 4,
+        "pred": 0,
+        "gt": 4
+      },
+      {
+        "file": "53_jpg.rf.H4XMobLKYKZOLHD1WPSN.jpg",
+        "tp": 0,
+        "fp": 3,
+        "fn": 6,
+        "pred": 3,
+        "gt": 6
+      },
+      {
+        "file": "11_jpg.rf.NGSTsqwjQOtD7CCuX0W1.jpg",
+        "tp": 0,
+        "fp": 1,
+        "fn": 6,
+        "pred": 1,
+        "gt": 6
+      },
+      {
+        "file": "11_jpg.rf.CHhhKy2RHSZJzfgV5q73.jpg",
+        "tp": 0,
+        "fp": 0,
+        "fn": 6,
+        "pred": 0,
+        "gt": 6
+      },
+      {
+        "file": "suggested-Iovcj6w0iPiRG2tMVok9_jpg.rf.qkXQr4qfI2qTegBwk0dh.jpg",
+        "tp": 1,
+        "fp": 3,
+        "fn": 39,
+        "pred": 4,
+        "gt": 40
+      },
+      {
+        "file": "35_jpg.rf.LUleXwtBBMT54cslQCkx.jpg",
+        "tp": 0,
+        "fp": 1,
+        "fn": 9,
+        "pred": 1,
+        "gt": 9
+      },
+      {
+        "file": "32_jpg.rf.WZLZk8KWOGIIIf0x4uDh.jpg",
+        "tp": 0,
+        "fp": 0,
+        "fn": 9,
+        "pred": 0,
+        "gt": 9
+      },
+      {
+        "file": "2_jpg.rf.sfakNQqxoa5ljgj2xUnG.jpg",
+        "tp": 0,
+        "fp": 3,
+        "fn": 4,
+        "pred": 3,
+        "gt": 4
+      },
+      {
+        "file": "train_26_jpg.rf.N0oIk6lIKeAEL5poMP1S.jpg",
+        "tp": 3,
+        "fp": 5,
+        "fn": 21,
+        "pred": 8,
+        "gt": 24
+      }
+    ]
+  }
+}

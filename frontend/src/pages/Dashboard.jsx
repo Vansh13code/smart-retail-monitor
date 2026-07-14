@@ -7,6 +7,71 @@ import ChartCard from "../components/ChartCard";
 import ApiService from "../services/ApiService";
 import { useUploadContext } from "../contexts/UploadContext";
 
+function firstNumber(...values) {
+  for (const value of values) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return 0;
+}
+
+function extractMetrics(analysisPayload) {
+  const root = analysisPayload || {};
+  const stage = root?.result && typeof root.result === "object" ? root.result : root;
+
+  const products = firstNumber(
+    stage?.products?.total_products,
+    stage?.total_products,
+    stage?.product_analysis?.total_products,
+    Array.isArray(stage?.products) ? stage.products.length : undefined,
+    Array.isArray(stage?.classified_products) ? stage.classified_products.length : undefined
+  );
+
+  const shelves = firstNumber(
+    Array.isArray(stage?.products?.shelf_inventory) ? stage.products.shelf_inventory.length : undefined,
+    Array.isArray(stage?.shelf_inventory) ? stage.shelf_inventory.length : undefined,
+    Array.isArray(stage?.product_analysis?.shelf_inventory) ? stage.product_analysis.shelf_inventory.length : undefined,
+    stage?.total_detections,
+    Array.isArray(stage?.detections) ? stage.detections.length : undefined
+  );
+
+  const ocrTags = firstNumber(
+    stage?.ocr?.total_price_tags,
+    stage?.total_price_tags,
+    stage?.result?.total_price_tags
+  );
+
+  const customers = firstNumber(
+    stage?.customers?.total_customers,
+    stage?.total_customers,
+    Array.isArray(stage?.customers) ? stage.customers.length : undefined
+  );
+
+  const inventory = firstNumber(
+    Array.isArray(stage?.inventory) ? stage.inventory.length : undefined,
+    Array.isArray(stage) ? stage.length : undefined,
+    Array.isArray(stage?.shelf_inventory) ? stage.shelf_inventory.length : undefined,
+    Array.isArray(stage?.products?.shelf_inventory) ? stage.products.shelf_inventory.length : undefined
+  );
+
+  const categoryCount =
+    stage?.classification?.category_count ||
+    stage?.category_count ||
+    stage?.products?.class_count ||
+    stage?.class_count ||
+    {};
+
+  return {
+    products,
+    shelves,
+    ocrTags,
+    customers,
+    inventory,
+    categoryCount,
+  };
+}
+
 export default function Dashboard() {
   const { latestUpload, lastAnalysis } = useUploadContext();
   const [health, setHealth] = useState({ status: "Loading", message: "Checking backend status..." });
@@ -25,19 +90,19 @@ export default function Dashboard() {
   }, []);
 
   const summary = useMemo(() => {
-    const data = lastAnalysis?.result || {};
+    const metrics = extractMetrics(lastAnalysis?.result);
     return {
-      products: data.products?.total_products ?? 0,
-      shelves: data.products?.shelf_inventory?.length ?? data.detections?.length ?? 0,
-      ocrTags: data.ocr?.total_price_tags ?? data.total_price_tags ?? 0,
-      customers: data.customers?.total_customers ?? 0,
-      inventory: data.inventory?.length ?? 0,
+      products: metrics.products,
+      shelves: metrics.shelves,
+      ocrTags: metrics.ocrTags,
+      customers: metrics.customers,
+      inventory: metrics.inventory,
       lastEndpoint: lastAnalysis?.title ?? "No run yet",
     };
   }, [lastAnalysis]);
 
   const chartData = useMemo(() => {
-    const categories = lastAnalysis?.result?.classification?.category_count ?? {};
+    const categories = extractMetrics(lastAnalysis?.result).categoryCount;
     const entries = Object.entries(categories);
     if (!entries.length) return [{ name: "Awaiting", value: 0 }];
     return entries.map(([name, value]) => ({ name, value: Number(value) }));

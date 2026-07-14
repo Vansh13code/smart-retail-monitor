@@ -23,8 +23,10 @@ product_service = ProductService()
 @router.post("/")
 async def detect_products(file: UploadFile = File(...)):
 
+    content_type = file.content_type or ""
+
     # ================= IMAGE =================
-    if file.content_type.startswith("image/"):
+    if content_type.startswith("image/"):
 
         image_bytes = await file.read()
 
@@ -51,11 +53,12 @@ async def detect_products(file: UploadFile = File(...)):
             "file_type": "image",
             "result": result,
             "annotated_image": f"data:image/png;base64,{annotated_b64}",
-            "execution_time": elapsed
+            "execution_time": elapsed,
+            "warnings": [shelf_service.detector.model_warning] if getattr(shelf_service.detector, "model_warning", None) else []
         }
 
     # ================= VIDEO =================
-    elif file.content_type.startswith("video/"):
+    elif content_type.startswith("video/"):
 
         suffix = os.path.splitext(file.filename)[1]
 
@@ -104,7 +107,8 @@ async def detect_products(file: UploadFile = File(...)):
             "file_type": "video",
             "video_name": file.filename,
             "frames_processed": len(results),
-            "results": results
+            "results": results,
+            "warnings": [shelf_service.detector.model_warning] if getattr(shelf_service.detector, "model_warning", None) else []
         }
 
     # ================= INVALID FILE =================

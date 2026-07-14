@@ -417,14 +417,26 @@ class PriceTagService:
         detections = self.detector.detect(frame)
 
         if len(detections) == 0:
+            # Fallback: run OCR on whole frame so users still get usable text/price output
+            # when bounding-box detection misses the tags.
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            fallback_ocr = self.ocr.read(gray)
+            cleaned = {
+                "text": self.cleaner.clean(fallback_ocr.get("text", "")),
+                "confidence": float(fallback_ocr.get("confidence", 0.0))
+            }
+            parsed = self.parser.parse(cleaned)
+            business = self.business_logic.process(parsed)
+
             return {
                 "total_price_tags": 0,
                 "detections": [],
-                "ocr_results": [],
-                "cleaned_results": [],
-                "parsed_results": [],
-                "business_results": [],
+                "ocr_results": [fallback_ocr] if fallback_ocr.get("text") else [],
+                "cleaned_results": [cleaned] if cleaned.get("text") else [],
+                "parsed_results": [parsed] if parsed.get("raw_text") else [],
+                "business_results": [business] if business.get("product_name") or business.get("price") is not None else [],
                 "annotated_image": None,
+                "warnings": ["No price-tag boxes detected. Returned OCR extracted from full image as fallback."]
             }
 
         crops = self.cropper.crop(frame, detections)

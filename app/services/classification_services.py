@@ -7,15 +7,20 @@ class ClassificationService:
 
         self.category_map = {
 
-            "Shampoo": "Personal Care",
+            "shampoo": "Personal Care",
 
             "milk": "Dairy",
 
             "snacks": "Food",
 
+            "soft drink": "Beverages",
+
             "soft_drink": "Beverages"
 
         }
+
+    def _normalize(self, label):
+        return str(label or "").strip().lower().replace("-", " ").replace("_", " ")
 
     def classify_products(self, products):
 
@@ -23,8 +28,9 @@ class ClassificationService:
 
         for product in products:
 
+            product_name = product.get("class", "")
             category = self.category_map.get(
-                product["class"],
+                self._normalize(product_name),
                 "Unknown"
             )
 
@@ -32,7 +38,7 @@ class ClassificationService:
 
                 "id": product["id"],
 
-                "product_name": product["class"],
+                "product_name": product_name,
 
                 "category": category,
 

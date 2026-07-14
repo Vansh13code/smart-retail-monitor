@@ -9,11 +9,20 @@ import ErrorAlert from "./ErrorAlert";
 import ResultCard from "./ResultCard";
 import UploadBox from "./UploadBox";
 
+function formatSummaryValue(value) {
+  if (value === null || value === undefined) return "N/A";
+  if (typeof value === "string") return value.length > 60 ? `${value.slice(0, 60)}...` : value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) return `Array(${value.length})`;
+  if (typeof value === "object") return `Object(${Object.keys(value).length})`;
+  return String(value);
+}
+
 export default function AnalysisPage({ title, endpoint }) {
   const { selectedFile, latestUpload, selectFile, registerAnalysis } = useUploadContext();
   const [file, setFile] = useState(selectedFile);
   const [response, setResponse] = useState(null);
-  const { loading, error, progress, run } = useApiRequest();
+  const { loading, error, progress, run, setError } = useApiRequest();
 
   useEffect(() => {
     if (!file && selectedFile) {
@@ -28,9 +37,11 @@ export default function AnalysisPage({ title, endpoint }) {
   }, [latestUpload, file]);
 
   const previewUrl = useMemo(() => file?.preview || latestUpload?.preview || null, [file, latestUpload]);
+  const hasRealFile = file instanceof File || selectedFile instanceof File;
 
   const handleFileChange = (nextFile) => {
     setResponse(null);
+    setError("");
     selectFile(nextFile);
     setFile(nextFile);
   };
@@ -39,13 +50,18 @@ export default function AnalysisPage({ title, endpoint }) {
     const fileToSend = file instanceof File ? file : selectedFile;
 
     if (!fileToSend) {
+      setError("Please reselect the file before running analysis.");
       return;
     }
 
-    const result = await run((event) => ApiService.postFile(endpoint, fileToSend, event));
-    if (result) {
-      setResponse(result);
-      registerAnalysis(endpoint, result);
+    try {
+      const result = await run((event) => ApiService.postFile(endpoint, fileToSend, event));
+      if (result) {
+        setResponse(result);
+        registerAnalysis(endpoint, result);
+      }
+    } catch {
+      // Error state is already managed by useApiRequest.
     }
   };
 
@@ -63,7 +79,7 @@ export default function AnalysisPage({ title, endpoint }) {
               <button
                 type="button"
                 onClick={handleAnalyze}
-                disabled={loading || !file}
+                disabled={loading || !hasRealFile}
                 className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 {loading ? "Analyzing..." : "Run Analysis"}
@@ -91,6 +107,9 @@ export default function AnalysisPage({ title, endpoint }) {
                 <p className="text-sm uppercase tracking-[0.18em] text-slate-400">Selected file</p>
                 <p className="mt-3 text-lg font-semibold text-slate-900">{file?.name || latestUpload?.fileName || "No file selected"}</p>
                 <p className="mt-2 text-sm text-slate-500">{file?.type || latestUpload?.fileType || "Upload an image or video to start."}</p>
+                {!hasRealFile && (file || latestUpload) && (
+                  <p className="mt-3 text-xs text-amber-600">Please reselect this file to run analysis after refresh.</p>
+                )}
               </div>
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <p className="text-sm uppercase tracking-[0.18em] text-slate-400">Analysis info</p>
@@ -136,7 +155,7 @@ export default function AnalysisPage({ title, endpoint }) {
               {Object.entries(response).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between gap-4 rounded-3xl bg-slate-50 px-4 py-3">
                   <span className="text-sm text-slate-500">{key.replace(/_/g, " ")}</span>
-                  <span className="max-w-[55%] truncate text-right text-sm font-semibold text-slate-900">{typeof value === "object" ? JSON.stringify(value).slice(0, 40) : String(value)}</span>
+                  <span className="max-w-[55%] truncate text-right text-sm font-semibold text-slate-900">{formatSummaryValue(value)}</span>
                 </div>
               ))}
             </div>

@@ -17,8 +17,10 @@ pipeline = PipelineService()
 @router.post("/")
 async def pipeline_process(file: UploadFile = File(...)):
 
+    content_type = file.content_type or ""
+
     # ================= IMAGE =================
-    if file.content_type.startswith("image/"):
+    if content_type.startswith("image/"):
 
         contents = await file.read()
 
@@ -42,7 +44,7 @@ async def pipeline_process(file: UploadFile = File(...)):
         }
 
     # ================= VIDEO =================
-    elif file.content_type.startswith("video/"):
+    elif content_type.startswith("video/"):
 
         suffix = os.path.splitext(file.filename)[1]
 

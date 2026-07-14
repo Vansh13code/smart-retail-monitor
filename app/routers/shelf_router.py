@@ -22,8 +22,10 @@ product_service = ProductService()
 @router.post("/")
 async def detect_shelf(file: UploadFile = File(...)):
 
+    content_type = file.content_type or ""
+
     # ================= IMAGE =================
-    if file.content_type.startswith("image/"):
+    if content_type.startswith("image/"):
 
         contents = await file.read()
 
@@ -52,11 +54,12 @@ async def detect_shelf(file: UploadFile = File(...)):
             "total_detections": len(detections),
             "detections": detections,
             "annotated_image": f"data:image/png;base64,{annotated_b64}",
-            "product_analysis": product_analysis
+            "product_analysis": product_analysis,
+            "warnings": [shelf_service.detector.model_warning] if getattr(shelf_service.detector, "model_warning", None) else []
         }
 
     # ================= VIDEO =================
-    elif file.content_type.startswith("video/"):
+    elif content_type.startswith("video/"):
 
         suffix = os.path.splitext(file.filename)[1]
 
@@ -130,7 +133,9 @@ async def detect_shelf(file: UploadFile = File(...)):
 
             "frames_processed": len(results),
 
-            "results": results
+            "results": results,
+
+            "warnings": [shelf_service.detector.model_warning] if getattr(shelf_service.detector, "model_warning", None) else []
 
         }
 

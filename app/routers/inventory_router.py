@@ -21,8 +21,10 @@ inventory_service = InventoryService()
 @router.post("/")
 async def inventory_analysis(file: UploadFile = File(...)):
 
+    content_type = file.content_type or ""
+
     # ================= IMAGE =================
-    if file.content_type.startswith("image/"):
+    if content_type.startswith("image/"):
 
         image_bytes = await file.read()
 
@@ -51,7 +53,7 @@ async def inventory_analysis(file: UploadFile = File(...)):
         }
 
     # ================= VIDEO =================
-    elif file.content_type.startswith("video/"):
+    elif content_type.startswith("video/"):
 
         suffix = os.path.splitext(file.filename)[1]
 

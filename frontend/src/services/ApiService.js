@@ -4,12 +4,18 @@ const url = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 const api = axios.create({
   baseURL: url,
-  timeout: 600000,
+  timeout: 120000,
 });
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.code === "ECONNABORTED") {
+      error.message =
+        "Analysis request timed out. Please try a smaller file or rerun after backend model warm-up.";
+      return Promise.reject(error);
+    }
+
     if (!error.response) {
       error.message =
         "Backend unavailable. Please verify that the Smart Retail API is running.";
