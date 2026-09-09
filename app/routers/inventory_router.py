@@ -88,7 +88,7 @@ async def inventory_analysis(
         raise HTTPException(status_code=400, detail="No file or filename provided.")
 
     annotated, detections = shelf_service.process_frame(frame)
-    product_data = product_service.process(detections)
+    product_data = product_service.process(frame,detections)
     inventory_data = inventory_service.process(product_data["shelf_inventory"])
 
     _, buffer = cv2.imencode('.png', annotated)

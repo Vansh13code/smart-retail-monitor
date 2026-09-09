@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class InteractionService:
 
     def __init__(self):
-        self.detector = PersonDetector()
+        self.detector = PersonDetector("yolo26n.pt")
         # Track history for sequential video frames
         # track_id -> list of [x, y] centers
         self.track_history = {}

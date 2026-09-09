@@ -53,6 +53,7 @@ async def detect_products(
             video_path = temp_path
             video_name = filename
 
+
         from app.services.video_task_service import create_task, process_video_background
         task_id = create_task(video_name, "product")
         background_tasks.add_task(process_video_background, task_id, video_path, "product")
@@ -86,7 +87,7 @@ async def detect_products(
         raise HTTPException(status_code=400, detail="No file or filename provided.")
 
     annotated, detections = shelf_service.process_frame(frame)
-    result = product_service.process(detections)
+    result = product_service.process(frame,detections)
 
     # Product overlays are blue; ShelfService has already drawn shelves green.
     for product in result["products"]:

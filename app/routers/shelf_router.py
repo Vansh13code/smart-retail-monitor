@@ -86,7 +86,6 @@ async def detect_shelf(
         raise HTTPException(status_code=400, detail="No file or filename provided.")
 
     annotated, detections = shelf_service.process_frame(frame)
-    product_analysis = product_service.process(detections)
 
     # encode annotated image to base64
     _, buffer = cv2.imencode('.png', annotated)
@@ -101,7 +100,6 @@ async def detect_shelf(
         "total_detections": len(detections),
         "detections": detections,
         "annotated_image": f"data:image/png;base64,{annotated_b64}",
-        "product_analysis": product_analysis,
         "warnings": [shelf_service.detector.model_warning] if getattr(shelf_service.detector, "model_warning", None) else []
     }
 

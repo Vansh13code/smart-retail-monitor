@@ -10,7 +10,7 @@ from app.utils.video_utils import VideoReader
 from app.utils.video_utils import VideoWriter
 
 
-VIDEO_PATH = "tests/price_test3.MOV"
+VIDEO_PATH = "video2.mp4"
 
 reader = VideoReader(VIDEO_PATH)
 
@@ -146,9 +146,8 @@ while ret:
     # Show processed price tags
     for i, crop in enumerate(price_tag_data["processed_crops"]):
 
-        cv2.imshow(
-            f"Price Tag {i}",
-            crop
+        print(
+            f"Price Tag {i}"
         )
 
     # ======================================================

@@ -37,3 +37,8 @@ htmlcov/
 
 tests/*.mp4
 tests/*.MOV
+
+uploads/
+datasets/
+dataset/
+Shelves.yolo26/

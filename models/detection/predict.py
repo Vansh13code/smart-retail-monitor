@@ -43,18 +43,6 @@ class ShelfDetector:
             self.model = None
             raise e
 
-        if self.model is not None:
-            names = self.model.names if hasattr(self.model, 'names') else {}
-            model_labels = list(names.values()) if isinstance(names, dict) else list(names)
-            normalized = {str(name).strip().lower().replace('-', ' ').replace('_', ' ') for name in model_labels}
-            expected = {'shelf', 'shampoo', 'milk', 'snacks', 'soft drink'}
-            if not expected.intersection(normalized):
-                self.model_warning = (
-                    'Retail classes were not found in model labels. '
-                    'Current weights look generic; product/classification counts may be inaccurate.'
-                )
-                logging.warning(self.model_warning)
-
     def detect(self, frame, conf: float = 0.15, iou: float = 0.45, imgsz: int = 640):
         # If model couldn't be loaded, return empty results list
         if self.model is None:
@@ -71,5 +59,50 @@ class ShelfDetector:
         )
 
         logging.debug('ShelfDetector.detect: conf=%s iou=%s imgsz=%s -> boxes_per_result=%s', conf, iou, imgsz, [len(r.boxes) for r in results])
+
+        return results
+
+
+class ProductDetector:
+
+    def __init__(self, weights: str = None):
+            self.weights = weights
+            self.model_warning = None
+            try:
+                self.model = get_yolo_model(weights)
+                logging.info('ProductDetector initialized using shared model loader.')
+            except Exception as e:
+                logging.exception('Failed to load YOLO weights %s: %s', weights, e)
+                self.model = None
+                raise e
+    
+            if self.model is not None:
+                names = self.model.names if hasattr(self.model, 'names') else {}
+                model_labels = list(names.values()) if isinstance(names, dict) else list(names)
+                normalized = {str(name).strip().lower().replace('-', ' ').replace('_', ' ') for name in model_labels}
+                expected = {'shelf', 'shampoo', 'milk', 'snacks', 'soft drink'}
+                if not expected.intersection(normalized):
+                    self.model_warning = (
+                        'Retail classes were not found in model labels. '
+                        'Current weights look generic; product/classification counts may be inaccurate.'
+                    )
+                    logging.warning(self.model_warning)
+    
+    def detect(self, frame, conf: float = 0.15, iou: float = 0.45, imgsz: int = 640):
+        # If model couldn't be loaded, return empty results list
+        if self.model is None:
+            logging.warning('ProductDetector.detect called but no model available; returning empty results')
+            return []
+
+        results = self.model.predict(
+            frame,
+            conf=conf,
+            iou=iou,
+            imgsz=imgsz,
+            verbose=False,
+            save=False
+        )
+
+        logging.debug('ProductDetector.detect: conf=%s iou=%s imgsz=%s -> boxes_per_result=%s', conf, iou, imgsz, [len(r.boxes) for r in results])
 
         return results
