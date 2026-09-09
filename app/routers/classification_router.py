@@ -88,7 +88,7 @@ async def classify_products(
         raise HTTPException(status_code=400, detail="No file or filename provided.")
 
     annotated, detections = shelf_service.process_frame(frame)
-    product_data = product_service.process(detections)
+    product_data = product_service.process(frame,detections)
     result = classification_service.process(product_data)
 
     _, buffer = cv2.imencode('.png', annotated)
@@ -106,4 +106,4 @@ async def classify_products(
         "message": "Product classification completed successfully.",
         "data": result_data,
         "processing_time": round(time.time() - start_time, 4)
-    }
+    }

@@ -3,26 +3,23 @@ from ultralytics import YOLO
 from app.core.model_manager import model_manager
 import logging
 
+from models.detection.predict import get_yolo_model
+
 logger = logging.getLogger(__name__)
 
 
 class PersonDetector:
 
-    def __init__(self):
+    def __init__(self, weights: str = None):
+        self.weights = weights
+        self.model_warning = None
         try:
-            # Use centralized ModelManager to load best.pt
-            self.model = model_manager.get_person_model()
-            logger.info("PersonDetector initialized using centralized ModelManager")
+            self.model = get_yolo_model(weights)
+            logging.info('InteractionDetector initialized using shared model loader.')
         except Exception as e:
-            logger.exception("Failed to load person model: %s", e)
-            # Fallback to yolov8n.pt if best.pt doesn't have person class
-            try:
-                from models.detection.predict import get_yolo_model
-                self.model = get_yolo_model("yolov8n.pt")
-                logger.info("PersonDetector fell back to yolov8n.pt")
-            except Exception as fallback_e:
-                logger.exception("Fallback model loading also failed: %s", fallback_e)
-                raise
+            logging.exception('Failed to load YOLO weights %s: %s', weights, e)
+            self.model = None
+            raise e
 
     def _get_person_class_id(self):
         """Find the class ID for 'person' in the model"""

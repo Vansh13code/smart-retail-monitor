@@ -1,6 +1,9 @@
 from collections import Counter
 import numpy as np
+import logging
+from models.detection.predict import ProductDetector
 
+logger = logging.getLogger(__name__)
 
 class ProductService:
 
@@ -60,6 +63,12 @@ class ProductService:
         # Tracking ID counter for product tracking
         self._next_track_id = 1
 
+        try:
+            self.detector = ProductDetector("best.pt")
+        except Exception:
+            logger.exception("Failed to initialize ProductDetector")
+            raise
+
     def _normalize_label(self, label):
         return str(label or "").strip().lower().replace("-", " ").replace("_", " ")
 
@@ -90,18 +99,6 @@ class ProductService:
                 products.append(normalized)
 
         return products
-
-    def filter_shelves(self, detections):
-
-        shelves = []
-
-        for detection in detections:
-
-            normalized = self._normalize_detection(detection)
-            if self._normalize_label(normalized.get("class")) == "shelf":
-                shelves.append(normalized)
-
-        return shelves
 
     def get_total_products(self, products):
 
@@ -215,49 +212,106 @@ class ProductService:
 
         return result
 
-    def process(self, detections):
+    def process(self, frame, shelf_detections):
 
-      shelves = self.filter_shelves(detections)
+        # Detect products using ProductDetector
+        results = self.detector.detect(
+            frame,
+            conf=0.25,
+            iou=0.40
+        )
 
-      products = self.filter_products(detections)
+        product_detections = []
 
-      # If no shelf is detected, create one virtual shelf
-      if len(shelves) == 0:
+        object_id = 1
 
-          shelf_inventory = [
+        # Parse Ultralytics YOLO results
+        if (
+            isinstance(results, list)
+            and len(results) > 0
+            and hasattr(results[0], "boxes")
+        ):
 
-              {
-                  "shelf_id": 1,
-                  "bbox": None,
-                  "products": products,
-                  "product_count": len(products)
-              }
+            for result in results:
 
-          ]
+                class_names = (
+                    getattr(self.detector.model, "names", None)
+                    or getattr(result, "names", None)
+                )
 
-      else:
+                for box in result.boxes:
 
-          shelf_inventory = self.map_products_to_shelves(
-              shelves,
-              products
-          )
+                    x1, y1, x2, y2 = map(
+                        int,
+                        box.xyxy[0]
+                    )
 
-      return {
+                    confidence = float(box.conf[0])
 
-          "total_products": self.get_total_products(products),
+                    class_id = int(box.cls[0])
 
-          "products": products,
+                    class_name = (
+                        class_names[class_id]
+                        if class_names and class_id in class_names
+                        else str(class_id)
+                    )
 
-          "class_count": self.get_class_count(products),
+                    product_detections.append({
+                        "id": object_id,
+                        "class": class_name,
+                        "bbox": [x1, y1, x2, y2],
+                        "confidence": round(confidence, 2),
+                        "track_id": object_id
+                    })
 
-          "confidence_scores": self.get_confidence_scores(products),
+                    object_id += 1
 
-          "bounding_boxes": self.get_bounding_boxes(products),
 
-          "shelf_inventory": shelf_inventory,
-          
-          "confidence_histogram": self.get_confidence_histogram(products),
+        # Filter valid products
+        products = self.filter_products(product_detections)
 
-          "tracking_ids": [p.get("track_id", p["id"]) for p in products]
+        # Shelves already come from ShelfService
+        shelves = shelf_detections
 
-      }
+        # Map products to shelves
+        if not shelves:
+
+            shelf_inventory = [
+                {
+                    "shelf_id": 1,
+                    "bbox": None,
+                    "products": products,
+                    "product_count": len(products)
+                }
+            ]
+
+        else:
+
+            shelf_inventory = self.map_products_to_shelves(
+                shelves,
+                products
+            )
+
+
+        return {
+
+            "total_products": self.get_total_products(products),
+
+            "products": products,
+
+            "class_count": self.get_class_count(products),
+
+            "confidence_scores": self.get_confidence_scores(products),
+
+            "bounding_boxes": self.get_bounding_boxes(products),
+
+            "shelf_inventory": shelf_inventory,
+
+            "confidence_histogram":
+                self.get_confidence_histogram(products),
+
+            "tracking_ids": [
+                p.get("track_id", p["id"])
+                for p in products
+            ]
+        }

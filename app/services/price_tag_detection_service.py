@@ -557,12 +557,15 @@ class PriceTagService:
         parsed_results = []
         business_results = []
         detection_response = []
+        processed_crops = [] 
 
         annotated = frame.copy()
 
         for detection, crop in zip(detections, crops):
 
             processed = self.preprocessor.preprocess(crop)
+
+            processed_crops.append(processed)
 
             ocr = self.ocr.read(processed)
 
@@ -623,5 +626,6 @@ class PriceTagService:
             "cleaned_results": cleaned_results,
             "parsed_results": parsed_results,
             "business_results": business_results,
+            "processed_crops": processed_crops,
             "annotated_image": f"data:image/png;base64,{annotated_b64}",
         }

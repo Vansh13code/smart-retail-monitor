@@ -2,7 +2,7 @@ import cv2
 
 from app.services.interaction_service import InteractionService
 
-VIDEO_PATH = "video3.mp4"      # Change if needed
+VIDEO_PATH = "video2.mp4"      # Change if needed
 
 cap = cv2.VideoCapture(VIDEO_PATH)
 
